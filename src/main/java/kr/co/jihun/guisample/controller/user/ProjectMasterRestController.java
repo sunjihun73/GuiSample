@@ -15,7 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/user/projects")
 @RequiredArgsConstructor
-public class ProjectMasterController
+public class ProjectMasterRestController
 {
     private final ProjectMasterService projectMasterService;
 
