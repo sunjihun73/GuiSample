@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.jihun.guisample.mapper.ProjectMasterMapper">
+
+    <resultMap id="projectMasterResultMap" type="kr.co.jihun.guisample.vo.ProjectMasterDTO">
+        <id     property="projectId"         column="project_id"/>
+        <result property="projectName"       column="project_name"/>
+        <result property="projectOwnerName"  column="project_owner_name"/>
+        <result property="updateUserId"      column="update_user_id"/>
+        <result property="updateDate"        column="update_date"/>
+        <result property="createUserId"      column="create_user_id"/>
+        <result property="createDate"        column="create_date"/>
+    </resultMap>
+
+    <sql id="projectMasterColumns">
+        project_id,
+        project_name,
+        project_owner_name,
+        update_user_id,
+        update_date,
+        create_user_id,
+        create_date
+    </sql>
+
+    <sql id="projectMasterWhere">
+        <where>
+            <if test="projectId != null and projectId != ''">
+                AND project_id = #{projectId}
+            </if>
+            <if test="projectName != null and projectName != ''">
+                AND project_name LIKE CONCAT('%', #{projectName}, '%')
+            </if>
+            <if test="projectOwnerName != null and projectOwnerName != ''">
+                AND project_owner_name LIKE CONCAT('%', #{projectOwnerName}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectProjectMasterList"
+            parameterType="hashmap"
+            resultMap="projectMasterResultMap">
+        SELECT
+            <include refid="projectMasterColumns"/>
+        FROM
+            project_master
+        <include refid="projectMasterWhere"/>
+        ORDER BY create_date DESC
+        <if test="pageSize != null">
+            LIMIT #{startRow}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="selectProjectMaster"
+            parameterType="hashmap"
+            resultMap="projectMasterResultMap">
+        SELECT
+            <include refid="projectMasterColumns"/>
+        FROM
+            project_master
+        WHERE
+            project_id = #{projectId}
+    </select>
+
+    <select id="countProjectMaster"
+            parameterType="hashmap"
+            resultType="int">
+        SELECT
+            COUNT(*)
+        FROM
+            project_master
+        <include refid="projectMasterWhere"/>
+    </select>
+
+</mapper>
