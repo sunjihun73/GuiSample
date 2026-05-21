@@ -268,7 +268,7 @@ body {
 
 .page-header__title {
     font-family: var(--font-display);
-    font-size: 40px;
+    font-size: 30px;
     font-weight: 600;
     line-height: 1.1;
     letter-spacing: -0.374px;
@@ -364,4 +364,242 @@ body {
     letter-spacing: -0.12px;
     color: var(--ink-muted-48);
     white-space: nowrap;
+}
+
+/* ══ 검색 폼 (Apple-style search form) ═══════════════════ */
+.search-form {
+    display: flex;
+    gap: var(--sp-md);
+    align-items: center;
+    margin-bottom: var(--sp-lg);
+    padding: var(--sp-lg);
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--rounded-lg);
+}
+.search-form__label {
+    font-family: var(--font-text);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.224px;
+    color: var(--ink);
+}
+.search-form__input {
+    flex: 0 0 280px;
+    height: 44px;
+    padding: 0 20px;
+    font-family: var(--font-text);
+    font-size: 17px;
+    line-height: 1.47;
+    letter-spacing: -0.374px;
+    color: var(--ink);
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--rounded-pill);
+    outline: none;
+    transition: border-color 0.12s, box-shadow 0.12s;
+}
+.search-form__input::placeholder { color: var(--ink-muted-48); }
+.search-form__input:focus {
+    border-color: var(--primary-focus);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+}
+.search-form__btn {
+    height: 44px;
+    padding: 0 22px;
+    font-family: var(--font-text);
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.374px;
+    color: #fff;
+    background: var(--primary);
+    border: none;
+    border-radius: var(--rounded-pill);
+    cursor: pointer;
+    transition: background-color 0.12s, transform 0.08s ease-out;
+}
+.search-form__btn:hover  { background: var(--primary-focus); }
+.search-form__btn:active { transform: scale(0.95); }
+
+/* ══ jqGrid (free-jqGrid 4.15.5) ═════════════════════════ */
+/* 컨테이너 (Apple-style card) */
+.grid-wrap {
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--rounded-lg);
+    overflow: hidden;
+}
+
+/* box-sizing은 건드리지 않는다 — free-jqGrid는 border-box 모델로
+   설계돼 있고, jqGrid 자체 CSS가 common.css의 * 규칙보다 명시도가
+   높아 이미 의도대로 적용된다. content-box로 덮으면 컬럼 너비 계산이
+   깨져 헤더-본문 정렬이 어긋난다. */
+
+/* ── jqGrid 외곽 ──────────────────────────────────────── */
+.grid-wrap .ui-jqgrid {
+    font-family: var(--font-text) !important;
+    background: var(--canvas) !important;
+    color: var(--ink) !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+.grid-wrap .ui-jqgrid .ui-jqgrid-view {
+    background: var(--canvas) !important;
+    border: none !important;
+}
+.grid-wrap .ui-jqgrid .ui-widget-content,
+.grid-wrap .ui-jqgrid .ui-widget-header,
+.grid-wrap .ui-jqgrid .ui-state-default {
+    background-image: none !important;
+    border-color: transparent !important;
+}
+
+/* ── 타이틀바 (caption) ───────────────────────────────── */
+.grid-wrap .ui-jqgrid .ui-jqgrid-titlebar {
+    padding: var(--sp-md) var(--sp-lg) !important;
+    background: var(--canvas) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--divider-soft) !important;
+    border-radius: 0 !important;
+    color: var(--ink) !important;
+    font-family: var(--font-display) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    line-height: 1.29 !important;
+    letter-spacing: -0.224px !important;
+    text-transform: uppercase;
+}
+.grid-wrap .ui-jqgrid .ui-jqgrid-titlebar-close { display: none !important; }
+
+/* ── 컬럼 헤더 ────────────────────────────────────────── */
+.grid-wrap .ui-jqgrid .ui-jqgrid-hdiv {
+    background: var(--canvas-parchment) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--hairline) !important;
+}
+.grid-wrap .ui-jqgrid .ui-jqgrid-htable { border: none !important; }
+.grid-wrap .ui-jqgrid .ui-jqgrid-htable th,
+.grid-wrap .ui-jqgrid .ui-jqgrid-htable .ui-th-column {
+    background: var(--canvas-parchment) !important;
+    border: none !important;
+    border-right: 1px solid var(--hairline) !important;
+    padding: 14px 16px !important;
+    font-family: var(--font-text) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    line-height: 1.29 !important;
+    letter-spacing: -0.224px !important;
+    color: var(--ink) !important;
+    text-align: left;
+}
+.grid-wrap .ui-jqgrid .ui-jqgrid-htable th:last-child { border-right: none !important; }
+.grid-wrap .ui-jqgrid .ui-jqgrid-htable .ui-jqgrid-sortable { color: var(--ink) !important; }
+.grid-wrap .ui-jqgrid .s-ico { margin-left: 6px !important; }
+.grid-wrap .ui-jqgrid .ui-icon { color: var(--ink-muted-48) !important; }
+
+/* free-jqGrid의 숨김 컬럼폭 측정 행 — 0높이 유지 (헤더-행 사이 빈 공간 제거) */
+.grid-wrap .ui-jqgrid .ui-jqgrid-htable .jqg-first-row-header th,
+.grid-wrap .ui-jqgrid .ui-jqgrid-btable tr.jqgfirstrow td {
+    padding: 0 !important;
+    height: 0 !important;
+    line-height: 0 !important;
+    border: none !important;
+}
+
+/* ── 데이터 행 ────────────────────────────────────────── */
+.grid-wrap .ui-jqgrid .ui-jqgrid-bdiv  { background: var(--canvas) !important; }
+.grid-wrap .ui-jqgrid .ui-jqgrid-btable { border: none !important; }
+.grid-wrap .ui-jqgrid .jqgrow td,
+.grid-wrap .ui-jqgrid .ui-row-ltr td {
+    padding: 14px 16px !important;
+    border: none !important;
+    border-bottom: 1px solid var(--divider-soft) !important;
+    background: var(--canvas) !important;
+    font-family: var(--font-text) !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    line-height: 1.43 !important;
+    letter-spacing: -0.224px !important;
+    color: var(--ink) !important;
+    height: auto !important;
+}
+.grid-wrap .ui-jqgrid .jqgrow:hover td,
+.grid-wrap .ui-jqgrid .ui-row-ltr:hover td {
+    background: var(--canvas-parchment) !important;
+}
+/* 행번호 컬럼 (rownumbers) — 좁은 폭에 맞춰 패딩 축소 */
+.grid-wrap .ui-jqgrid .ui-jqgrid-htable th.jqgh_rn,
+.grid-wrap .ui-jqgrid .jqgrow td.jqgrid-rownum {
+    padding: 14px 8px !important;
+    text-align: center !important;
+    color: var(--ink-muted-48) !important;
+}
+.grid-wrap .ui-jqgrid tr.ui-state-highlight td,
+.grid-wrap .ui-jqgrid .ui-state-highlight {
+    background: #e8f0fb !important;
+    color: var(--ink) !important;
+    border-color: transparent !important;
+}
+.grid-wrap .ui-jqgrid .jqgrid-emptyrecords {
+    padding: 32px 16px !important;
+    text-align: center !important;
+    color: var(--ink-muted-48) !important;
+    font-size: 14px !important;
+}
+
+/* ── 페이저 ───────────────────────────────────────────── */
+.grid-wrap .ui-jqgrid-pager {
+    background: var(--canvas) !important;
+    border: none !important;
+    border-top: 1px solid var(--hairline) !important;
+    padding: 10px var(--sp-lg) !important;
+    color: var(--ink-muted-80) !important;
+    font-family: var(--font-text) !important;
+    font-size: 12px !important;
+    letter-spacing: -0.12px !important;
+    height: auto !important;
+    border-radius: 0 !important;
+}
+.grid-wrap .ui-pager-control { padding: 0 !important; }
+.grid-wrap .ui-jqgrid-pager .ui-pg-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid var(--hairline) !important;
+    background: var(--canvas) !important;
+    border-radius: var(--rounded-sm) !important;
+    margin: 0 3px !important;
+    padding: 4px 8px !important;
+    color: var(--ink-muted-80) !important;
+    cursor: pointer !important;
+    transition: background 0.12s, color 0.12s, transform 0.08s ease-out !important;
+}
+.grid-wrap .ui-jqgrid-pager .ui-pg-button:hover {
+    background: var(--canvas-parchment) !important;
+    color: var(--ink) !important;
+}
+.grid-wrap .ui-jqgrid-pager .ui-pg-button:active { transform: scale(0.95) !important; }
+.grid-wrap .ui-jqgrid-pager .ui-state-disabled,
+.grid-wrap .ui-jqgrid-pager .ui-pg-button.ui-state-disabled {
+    border-color: var(--divider-soft) !important;
+    color: #c0c0c0 !important;
+    cursor: default !important;
+    background: var(--canvas) !important;
+}
+.grid-wrap .ui-jqgrid-pager .ui-pg-input,
+.grid-wrap .ui-jqgrid-pager .ui-pg-selbox {
+    height: 28px !important;
+    padding: 0 10px !important;
+    font-family: var(--font-text) !important;
+    font-size: 12px !important;
+    color: var(--ink) !important;
+    background: var(--canvas) !important;
+    border: 1px solid var(--hairline) !important;
+    border-radius: var(--rounded-sm) !important;
+    outline: none !important;
+}
+.grid-wrap .ui-jqgrid-pager .ui-pg-input:focus,
+.grid-wrap .ui-jqgrid-pager .ui-pg-selbox:focus {
+    border-color: var(--primary-focus) !important;
 }

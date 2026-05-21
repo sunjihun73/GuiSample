@@ -19,6 +19,12 @@ repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:2.0.0-M4"
+    }
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     compileOnly 'org.projectlombok:lombok'
@@ -27,6 +33,7 @@ dependencies {
     providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat-runtime'
     providedRuntime 'org.apache.tomcat.embed:tomcat-embed-jasper'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    runtimeOnly 'org.postgresql:postgresql'
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
@@ -36,7 +43,12 @@ dependencies {
 
     // MYBATIS
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.1'
+
+    // Spring AI
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+    implementation 'org.springframework.ai:spring-ai-starter-vector-store-pgvector'
 }
+
 
 tasks.named('test') {
     useJUnitPlatform()

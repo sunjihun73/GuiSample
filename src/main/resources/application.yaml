@@ -2,23 +2,45 @@ server:
   port: 8080
 
 spring:
+  output:
+    ansi:
+      enabled: ALWAYS
   application:
     name: guiSample
   mvc:
     view:
       prefix: /WEB-INF/views/
       suffix: .jsp
+  # Primary datasource (PostgreSQL) — Spring AI pgvector
+  datasource:
+    jdbc-url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
+  ai:
+    openai:
+      api-key:
+      chat:
+        options:
+          model: gpt-4o-mini
+      embeddings:
+        options:
+          model: text-embedding-3-small
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+
+# Slave datasource (MySQL) — used by MyBatis mappers
+slave:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.0:3306/jihundb?serverTimezone=UTC&allowMultiQueries=true&characterEncoding=UTF-8&useSSL=false&verifyServerCertificate=false
-    hikari:
-      username: root
-      password: 89888988
-      maximum-pool-size: 12
-      max-lifetime: 170000
+    jdbc-url: jdbc:mysql://127.0.0.1:3306/jihundb?serverTimezone=UTC&allowMultiQueries=true&characterEncoding=UTF-8&useSSL=false&verifyServerCertificate=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 89888988
+    maximum-pool-size: 12
+    max-lifetime: 170000
 
-mybatis:
-  mapper-locations: classpath:mapper/**/*.xml
-  type-aliases-package: kr.co.jihun.guisample.vo
-  configuration:
-    map-underscore-to-camel-case: true
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+
