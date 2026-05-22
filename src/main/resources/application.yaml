@@ -11,14 +11,17 @@ spring:
     view:
       prefix: /WEB-INF/views/
       suffix: .jsp
-  # Primary datasource (PostgreSQL) — Spring AI pgvector
+  # Datasource (PostgreSQL) — shared by Spring AI pgvector and MyBatis mappers
   datasource:
+    driver-class-name: org.postgresql.Driver
     jdbc-url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
     password: postgres
+    maximum-pool-size: 12
+    max-lifetime: 170000
   ai:
     openai:
-      api-key:
+      api-key: sk...
       chat:
         options:
           model: gpt-4o-mini
@@ -28,16 +31,6 @@ spring:
     vectorstore:
       pgvector:
         initialize-schema: true
-
-# Slave datasource (MySQL) — used by MyBatis mappers
-slave:
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    jdbc-url: jdbc:mysql://127.0.0.1:3306/jihundb?serverTimezone=UTC&allowMultiQueries=true&characterEncoding=UTF-8&useSSL=false&verifyServerCertificate=false&allowPublicKeyRetrieval=true
-    username: root
-    password: 89888988
-    maximum-pool-size: 12
-    max-lifetime: 170000
 
 logging:
   pattern:

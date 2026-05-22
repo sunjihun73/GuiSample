@@ -47,7 +47,7 @@
         <include refid="projectMasterWhere"/>
         ORDER BY create_date DESC
         <if test="pageSize != null">
-            LIMIT #{startRow}, #{pageSize}
+            LIMIT #{pageSize} OFFSET #{startRow}
         </if>
     </select>
 
