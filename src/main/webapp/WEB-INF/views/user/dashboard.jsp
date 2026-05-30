@@ -55,6 +55,20 @@
                 </a>
                 <span class="tooltip">프로젝트</span>
             </li>
+            <li class="nav-menu__item">
+                <a href="/user/rag">
+                    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="8" cy="1.75" r="1"/>
+                        <path fill-rule="evenodd" clip-rule="evenodd"
+                              d="M8 2.5a.6.6 0 0 1 .6.6V4h2.9A2.5 2.5 0 0 1 14 6.5v4A2.5 2.5 0 0 1 11.5 13h-7A2.5 2.5 0 0 1 2 10.5v-4A2.5 2.5 0 0 1 4.5 4h2.9v-.9A.6.6 0 0 1 8 2.5ZM4.5 5.5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-7Z"/>
+                        <circle cx="6" cy="8.5" r="1"/>
+                        <circle cx="10" cy="8.5" r="1"/>
+                        <path d="M.75 7.5a.75.75 0 0 1 .75.75v1a.75.75 0 0 1-1.5 0v-1a.75.75 0 0 1 .75-.75Zm14.5 0a.75.75 0 0 1 .75.75v1a.75.75 0 0 1-1.5 0v-1a.75.75 0 0 1 .75-.75Z"/>
+                    </svg>
+                    <span class="nav-label">RAG</span>
+                </a>
+                <span class="tooltip">RAG</span>
+            </li>
         </ul>
     </aside>
 

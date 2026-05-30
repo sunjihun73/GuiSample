@@ -32,3 +32,14 @@ Root package: `kr.co.jihun.guisample`
 Static assets go in `src/main/resources/static/`, templates in `src/main/resources/templates/`, JSP views in `src/main/webapp/WEB-INF/views/`.
 
 Configuration is in `src/main/resources/application.yaml`.
+
+## 하네스: Spring AI/RAG 기능 개발
+
+**목표:** Spring Boot 4 + MyBatis + PostgreSQL(pgvector) + JSP 환경에서 RAG 기능을 백엔드·데이터·프론트 전 계층에 걸쳐 일관되게 추가·수정한다.
+
+**트리거:** RAG/Spring AI/벡터 검색/문서 인덱싱/챗봇 등 RAG 관련 신규·후속 작업 요청 시 `rag-feature-orchestrator` 스킬을 사용하라. 단순 질문(설계 조언, 사용법 문의)이나 1~2줄 수정은 직접 응답 가능.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-30 | 초기 구성 (에이전트 5, 스킬 6) | 전체 | - |

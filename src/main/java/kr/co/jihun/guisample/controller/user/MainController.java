@@ -19,4 +19,10 @@ public class MainController
     {
         return "user/projects";
     }
+
+    @GetMapping({ "/rag" })
+    public String rag()
+    {
+        return "user/rag";
+    }
 }
