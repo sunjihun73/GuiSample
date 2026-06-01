@@ -21,7 +21,7 @@ spring:
     max-lifetime: 170000
   ai:
     openai:
-      api-key: sk...
+      api-key: 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
       chat:
         options:
           model: gpt-4o-mini

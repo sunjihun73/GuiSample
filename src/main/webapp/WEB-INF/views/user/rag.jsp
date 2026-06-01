@@ -145,6 +145,18 @@
             color: var(--ink-muted-48);
             cursor: default;
         }
+
+        /* 스트리밍 중인 봇 말풍선 끝에 깜빡이는 커서 */
+        .chat-bubble.is-streaming::after {
+            content: '▋';
+            margin-left: 1px;
+            color: var(--ink-muted-48);
+            animation: chat-caret 1s steps(1) infinite;
+        }
+        @keyframes chat-caret {
+            0%, 50% { opacity: 1; }
+            50.01%, 100% { opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -255,16 +267,19 @@
         });
     })();
 
-    /* ── 채팅 ─────────────────────────────────────────────── */
+    /* ── RAG 답변 스트리밍 ────────────────────────────────── */
     (function () {
-        var CHAT_URL = '${pageContext.request.contextPath}/user/rag/chat.json';
+        /* 백엔드 응답: POST /user/rag/docs  body { query }
+           →  200  text/event-stream  (data: 토큰 …)  답변 토큰 스트림 */
+        var DOCS_URL = '${pageContext.request.contextPath}/user/rag/docs';
 
         var messagesEl = document.getElementById('chatMessages');
         var formEl     = document.getElementById('chatForm');
         var inputEl    = document.getElementById('chatInput');
         var sendBtn    = document.getElementById('chatSendBtn');
 
-        /* 메시지 말풍선 추가 — 텍스트는 textContent로 삽입(XSS 방지) */
+        /* 메시지 말풍선 추가 — 텍스트는 textContent로 삽입(XSS 방지).
+           말풍선(.chat-bubble) 요소를 반환해 스트리밍 토큰을 이어붙일 수 있게 한다. */
         function appendMessage(role, text) {
             var row = document.createElement('div');
             row.className = 'chat-msg chat-msg--' + role;
@@ -276,7 +291,7 @@
             row.appendChild(bubble);
             messagesEl.appendChild(row);
             scrollToBottom();
-            return row;
+            return bubble;
         }
 
         /* 타이핑 인디케이터 표시/제거 */
@@ -314,24 +329,45 @@
             inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
         }
 
-        /* 서버에 질의 — 응답 shape이 아직 확정되지 않아 방어적으로 파싱.
-           백엔드 연동 전에는 호출이 실패하므로 임시 응답으로 폴백한다. */
-        async function askServer(question) {
-            try {
-                var res = await fetch(CHAT_URL, {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body:    JSON.stringify({ question: question })
-                });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
+        /* /user/rag/docs 답변 스트림 소비.
+           fetch ReadableStream을 직접 읽어 SSE(data: 라인)를 파싱하고
+           토큰마다 onToken(text)을 호출한다. (EventSource는 GET만 지원하므로 미사용)
+           Spring SSE는 'data:' 뒤에 공백을 추가하지 않으므로 slice(5)로 원문을 보존한다. */
+        async function streamAnswer(query, onToken) {
+            var res = await fetch(DOCS_URL, {
+                method:  'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept':       'text/event-stream'
+                },
+                body: JSON.stringify({ query: query })
+            });
+            if (!res.ok)   throw new Error('HTTP ' + res.status);
+            if (!res.body) throw new Error('스트림을 지원하지 않는 브라우저입니다.');
 
-                var data = await res.json();
-                /* { answer: "..." } 또는 { message: "..." } 등 다양한 형태 방어 */
-                var answer = (data && (data.answer || data.message || data.content));
-                return answer || '응답을 받지 못했습니다.';
-            } catch (e) {
-                /* TODO: /user/rag/chat.json 백엔드 연동 후 이 폴백 제거 */
-                return '아직 RAG 응답 서버가 연결되지 않았습니다.\n("' + question + '" 질문이 정상적으로 전송되었습니다.)';
+            var reader  = res.body.getReader();
+            var decoder = new TextDecoder('utf-8');
+            var buffer  = '';
+
+            while (true) {
+                var chunk = await reader.read();
+                if (chunk.done) break;
+
+                buffer += decoder.decode(chunk.value, { stream: true });
+
+                /* 이벤트 경계는 빈 줄(\n\n). 마지막 미완성 조각은 버퍼에 남긴다. */
+                var events = buffer.split('\n\n');
+                buffer = events.pop();
+
+                events.forEach(function (evt) {
+                    var dataLines = [];
+                    evt.split('\n').forEach(function (line) {
+                        if (line.indexOf('data:') === 0) {
+                            dataLines.push(line.slice(5));
+                        }
+                    });
+                    if (dataLines.length) onToken(dataLines.join('\n'));
+                });
             }
         }
 
@@ -347,11 +383,35 @@
             sendBtn.disabled = true;
             showTyping();
 
-            var answer = await askServer(text);
+            var bubble = null;
+            try {
+                await streamAnswer(text, function (token) {
+                    if (!bubble) {
+                        removeTyping();
+                        bubble = appendMessage('bot', '');
+                        bubble.classList.add('is-streaming');
+                    }
+                    bubble.textContent += token;
+                    scrollToBottom();
+                });
 
-            removeTyping();
-            appendMessage('bot', answer);
-            sendBtn.disabled = false;
+                if (!bubble) {
+                    removeTyping();
+                    appendMessage('bot', '응답을 받지 못했습니다.');
+                } else {
+                    bubble.classList.remove('is-streaming');
+                }
+            } catch (e) {
+                removeTyping();
+                if (bubble) {
+                    bubble.classList.remove('is-streaming');
+                    bubble.textContent += '\n[오류] ' + e.message;
+                } else {
+                    appendMessage('bot', '답변 생성 중 오류가 발생했습니다. (' + e.message + ')');
+                }
+            } finally {
+                sendBtn.disabled = false;
+            }
         }
 
         formEl.addEventListener('submit', handleSend);
