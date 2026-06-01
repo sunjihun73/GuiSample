@@ -2,6 +2,9 @@ server:
   port: 8080
 
 spring:
+  # Load secrets (e.g. OPENAI_API_KEY) from a gitignored .env file if present
+  config:
+    import: optional:file:.env[.properties]
   output:
     ansi:
       enabled: ALWAYS
@@ -21,7 +24,7 @@ spring:
     max-lifetime: 170000
   ai:
     openai:
-      api-key: sk-....
+      api-key: ${OPENAI_API_KEY}
       chat:
         options:
           model: gpt-4o-mini
