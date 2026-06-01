@@ -21,7 +21,7 @@ spring:
     max-lifetime: 170000
   ai:
     openai:
-      api-key:
+      api-key: sk-....
       chat:
         options:
           model: gpt-4o-mini
