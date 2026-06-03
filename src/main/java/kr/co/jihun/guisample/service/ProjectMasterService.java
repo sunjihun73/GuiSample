@@ -38,4 +38,12 @@ public class ProjectMasterService
         projectMasterMapper.insertProjectMaster(projectMaster);
         return projectMaster;
     }
+
+    public int updateProjectMaster(ProjectMasterDTO projectMaster)
+    {
+        // 수정자는 일단 고정값으로 입력 (update_date 는 NOW() 로 매퍼에서 처리)
+        projectMaster.setUpdateUserId(DEFAULT_USER_ID);
+
+        return projectMasterMapper.updateProjectMaster(projectMaster);
+    }
 }

@@ -4,6 +4,8 @@ import kr.co.jihun.guisample.service.ProjectMasterService;
 import kr.co.jihun.guisample.vo.ProjectMasterDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -58,6 +60,31 @@ public class ProjectMasterRestController
             ProjectMasterDTO saved = projectMasterService.createProjectMaster(projectMaster);
             result.put("success",   true);
             result.put("projectId", saved.getProjectId());
+        }
+        catch (Exception e)
+        {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+
+    @PatchMapping("/projects/{projectId}")
+    public Map<String, Object> updateProject(
+            @PathVariable String projectId,
+            @RequestBody ProjectMasterDTO projectMaster)
+    {
+        Map<String, Object> result = new HashMap<>();
+        try
+        {
+            projectMaster.setProjectId(projectId);
+            int updated = projectMasterService.updateProjectMaster(projectMaster);
+            result.put("success",   updated > 0);
+            result.put("projectId", projectId);
+            if (updated == 0)
+            {
+                result.put("message", "수정 대상 프로젝트를 찾을 수 없습니다.");
+            }
         }
         catch (Exception e)
         {

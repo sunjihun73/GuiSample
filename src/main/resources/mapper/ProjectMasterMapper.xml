@@ -93,4 +93,16 @@
         )
     </insert>
 
+    <update id="updateProjectMaster"
+            parameterType="kr.co.jihun.guisample.vo.ProjectMasterDTO">
+        UPDATE project_master
+        SET
+            project_name       = #{projectName},
+            project_owner_name = #{projectOwnerName},
+            update_user_id     = #{updateUserId},
+            update_date        = NOW()
+        WHERE
+            project_id = #{projectId}
+    </update>
+
 </mapper>

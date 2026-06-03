@@ -11,6 +11,30 @@
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.min.css">
     <!-- free-jqGrid CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/css/ui.jqgrid.min.css">
+
+    <style>
+        /* 그리드 셀 padding 축소 → row 높이 감소 */
+        #projectGrid.ui-jqgrid-btable td {
+            padding-top: 2px;
+            padding-bottom: 2px;
+        }
+
+        /* 수정 불가 projectId 필드: 회색 배경 + 편집 불가 표시 */
+        #popupProjectId[readonly] {
+            background: var(--divider-soft, #f0f0f0);
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        /* "상세" 버튼 컴팩트 스타일 (기본 .search-form__btn 의 height:44px 를 덮어씀) */
+        .btn-detail {
+            height: 22px;
+            padding: 0 8px;
+            font-size: 12px;
+            line-height: 1;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
 
@@ -111,6 +135,11 @@
             <h2 class="layer-popup__title" id="projectPopupTitle">프로젝트 등록</h2>
         </div>
         <div class="layer-popup__body">
+            <div class="form-field" id="popupProjectIdField" style="display:none;">
+                <label for="popupProjectId" class="form-field__label">프로젝트 ID</label>
+                <input type="text" id="popupProjectId" class="form-field__input"
+                       readonly tabindex="-1">
+            </div>
             <div class="form-field">
                 <label for="popupProjectName" class="form-field__label">프로젝트명</label>
                 <input type="text" id="popupProjectName" class="form-field__input"
@@ -161,13 +190,20 @@
             return String(cellValue).replace("T", " ").substring(0, 19);
         }
 
+        // "상세" 버튼 렌더링 (rowId 는 projectId)
+        function detailButtonFormatter(cellValue, options) {
+            return '<button type="button" class="search-form__btn btn-detail" data-id="'
+                + options.rowId + '">상세</button>';
+        }
+
         $("#projectGrid").jqGrid({
             url:       listUrl,
             datatype:  "json",
             mtype:     "GET",
-            colNames:  ["프로젝트 ID", "프로젝트명", "담당자", "생성일", "생성자", "수정일", "수정자"],
+            colNames:  ["프로젝트 ID", "상세", "프로젝트명", "담당자", "생성일", "생성자", "수정일", "수정자"],
             colModel: [
-                { name: "projectId",        index: "projectId",        width: 120, align: "center" },
+                { name: "projectId",        index: "projectId",        width: 120, align: "center", hidden : true },
+                { name: "detail",           width: 70,  align: "center", sortable: false, search: false, formatter: detailButtonFormatter },
                 { name: "projectName",      index: "projectName",      width: 240 },
                 { name: "projectOwnerName", index: "projectOwnerName", width: 120, align: "center" },
                 { name: "createDate",       index: "createDate",       width: 160, align: "center", formatter: dateTimeFormatter },
@@ -216,13 +252,29 @@
             }
         });
 
-        /* ── 프로젝트 등록 레이어 팝업 ── */
+        /* ── 프로젝트 등록/수정 레이어 팝업 ── */
         var saveUrl   = '${pageContext.request.contextPath}/user/project/projects';
         var $popup    = $("#projectPopup");
+        var popupMode = "create";   // "create" | "edit"
 
-        function openPopup() {
+        function openCreatePopup() {
+            popupMode = "create";
+            $("#projectPopupTitle").text("프로젝트 등록");
+            $("#popupProjectIdField").hide();
+            $("#popupProjectId").val("");
             $("#popupProjectName").val("");
             $("#popupProjectOwnerName").val("");
+            $popup.addClass("is-open").attr("aria-hidden", "false");
+            $("#popupProjectName").trigger("focus");
+        }
+
+        function openEditPopup(rowData) {
+            popupMode = "edit";
+            $("#projectPopupTitle").text("프로젝트 수정");
+            $("#popupProjectIdField").show();
+            $("#popupProjectId").val(rowData.projectId);
+            $("#popupProjectName").val(rowData.projectName);
+            $("#popupProjectOwnerName").val(rowData.projectOwnerName);
             $popup.addClass("is-open").attr("aria-hidden", "false");
             $("#popupProjectName").trigger("focus");
         }
@@ -246,11 +298,20 @@
                 return;
             }
 
+            var ajaxUrl, ajaxType;
+            if (popupMode === "edit") {
+                ajaxUrl  = saveUrl + "/" + encodeURIComponent($("#popupProjectId").val());
+                ajaxType = "PATCH";
+            } else {
+                ajaxUrl  = saveUrl;
+                ajaxType = "POST";
+            }
+
             $("#btnPopupSave").prop("disabled", true);
 
             $.ajax({
-                url:         saveUrl,
-                type:        "POST",
+                url:         ajaxUrl,
+                type:        ajaxType,
                 contentType: "application/json",
                 dataType:    "json",
                 data:        JSON.stringify({
@@ -273,7 +334,14 @@
             });
         }
 
-        $("#btnCreate").on("click", openPopup);
+        // "상세" 버튼 클릭 → 선택 row 데이터로 수정 팝업 오픈
+        $("#projectGrid").on("click", ".btn-detail", function () {
+            var rowId   = $(this).data("id");
+            var rowData = $("#projectGrid").jqGrid("getRowData", rowId);
+            openEditPopup(rowData);
+        });
+
+        $("#btnCreate").on("click", openCreatePopup);
         $("#btnPopupCancel").on("click", closePopup);
         $("#projectPopupDim").on("click", closePopup);
         $("#btnPopupSave").on("click", saveProject);

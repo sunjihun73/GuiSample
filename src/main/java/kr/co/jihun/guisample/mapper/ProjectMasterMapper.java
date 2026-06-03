@@ -16,4 +16,6 @@ public interface ProjectMasterMapper
     int countProjectMaster(HashMap<String, Object> param);
 
     int insertProjectMaster(ProjectMasterDTO projectMaster);
+
+    int updateProjectMaster(ProjectMasterDTO projectMaster);
 }
