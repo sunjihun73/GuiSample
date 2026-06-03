@@ -88,7 +88,10 @@
             <label for="searchProjectName" class="search-form__label">프로젝트명</label>
             <input type="text" id="searchProjectName" name="projectName"
                    class="search-form__input" placeholder="프로젝트명을 입력하세요">
-            <button type="button" id="btnSearch" class="search-form__btn">조회</button>
+            <div class="search-form__actions">
+                <button type="button" id="btnSearch" class="search-form__btn">조회</button>
+                <button type="button" id="btnCreate" class="search-form__btn">등록</button>
+            </div>
         </form>
 
         <!-- jqGrid -->
@@ -98,6 +101,32 @@
         </div>
 
     </main>
+</div>
+
+<!-- ── 프로젝트 등록 레이어 팝업 ── -->
+<div class="layer-popup" id="projectPopup" aria-hidden="true">
+    <div class="layer-popup__dim" id="projectPopupDim"></div>
+    <div class="layer-popup__panel" role="dialog" aria-modal="true" aria-labelledby="projectPopupTitle">
+        <div class="layer-popup__header">
+            <h2 class="layer-popup__title" id="projectPopupTitle">프로젝트 등록</h2>
+        </div>
+        <div class="layer-popup__body">
+            <div class="form-field">
+                <label for="popupProjectName" class="form-field__label">프로젝트명</label>
+                <input type="text" id="popupProjectName" class="form-field__input"
+                       placeholder="프로젝트명을 입력하세요" maxlength="200">
+            </div>
+            <div class="form-field">
+                <label for="popupProjectOwnerName" class="form-field__label">담당자</label>
+                <input type="text" id="popupProjectOwnerName" class="form-field__input"
+                       placeholder="담당자를 입력하세요" maxlength="100">
+            </div>
+        </div>
+        <div class="layer-popup__footer">
+            <button type="button" id="btnPopupSave"   class="search-form__btn">저장</button>
+            <button type="button" id="btnPopupCancel" class="search-form__btn search-form__btn--ghost">취소</button>
+        </div>
+    </div>
 </div>
 
 <!-- jQuery / jqGrid -->
@@ -122,7 +151,15 @@
     })();
 
     $(function () {
-        var listUrl = '${pageContext.request.contextPath}/user/projects/list.json';
+        var listUrl = '${pageContext.request.contextPath}/user/project/projects';
+
+        // yyyy-mm-dd hh:mm:ss 형태로 변환 (DB 타임스탬프 문자열의 앞 19자리 사용)
+        function dateTimeFormatter(cellValue) {
+            if (!cellValue) {
+                return "";
+            }
+            return String(cellValue).replace("T", " ").substring(0, 19);
+        }
 
         $("#projectGrid").jqGrid({
             url:       listUrl,
@@ -133,9 +170,9 @@
                 { name: "projectId",        index: "projectId",        width: 120, align: "center" },
                 { name: "projectName",      index: "projectName",      width: 240 },
                 { name: "projectOwnerName", index: "projectOwnerName", width: 120, align: "center" },
-                { name: "createDate",       index: "createDate",       width: 140, align: "center" },
+                { name: "createDate",       index: "createDate",       width: 160, align: "center", formatter: dateTimeFormatter },
                 { name: "createUserId",     index: "createUserId",     width: 100, align: "center" },
-                { name: "updateDate",       index: "updateDate",       width: 140, align: "center" },
+                { name: "updateDate",       index: "updateDate",       width: 160, align: "center", formatter: dateTimeFormatter },
                 { name: "updateUserId",     index: "updateUserId",     width: 100, align: "center" }
             ],
             jsonReader: {
@@ -178,6 +215,68 @@
                 reloadGrid();
             }
         });
+
+        /* ── 프로젝트 등록 레이어 팝업 ── */
+        var saveUrl   = '${pageContext.request.contextPath}/user/project/projects';
+        var $popup    = $("#projectPopup");
+
+        function openPopup() {
+            $("#popupProjectName").val("");
+            $("#popupProjectOwnerName").val("");
+            $popup.addClass("is-open").attr("aria-hidden", "false");
+            $("#popupProjectName").trigger("focus");
+        }
+
+        function closePopup() {
+            $popup.removeClass("is-open").attr("aria-hidden", "true");
+        }
+
+        function saveProject() {
+            var projectName      = $.trim($("#popupProjectName").val());
+            var projectOwnerName = $.trim($("#popupProjectOwnerName").val());
+
+            if (projectName === "") {
+                alert("프로젝트명을 입력하세요.");
+                $("#popupProjectName").trigger("focus");
+                return;
+            }
+            if (projectOwnerName === "") {
+                alert("담당자를 입력하세요.");
+                $("#popupProjectOwnerName").trigger("focus");
+                return;
+            }
+
+            $("#btnPopupSave").prop("disabled", true);
+
+            $.ajax({
+                url:         saveUrl,
+                type:        "POST",
+                contentType: "application/json",
+                dataType:    "json",
+                data:        JSON.stringify({
+                    projectName:      projectName,
+                    projectOwnerName: projectOwnerName
+                })
+            }).done(function (data) {
+                if (data && data.success) {
+                    closePopup();
+                    $("#projectGrid").trigger("reloadGrid");
+                } else {
+                    alert("저장에 실패했습니다.\n" + ((data && data.message) || ""));
+                }
+            })
+            .fail(function (xhr, status, error) {
+                alert("저장 중 오류가 발생했습니다.\n" + status + " : " + error);
+            })
+            .always(function () {
+                $("#btnPopupSave").prop("disabled", false);
+            });
+        }
+
+        $("#btnCreate").on("click", openPopup);
+        $("#btnPopupCancel").on("click", closePopup);
+        $("#projectPopupDim").on("click", closePopup);
+        $("#btnPopupSave").on("click", saveProject);
     });
 </script>
 

@@ -4,6 +4,8 @@ import kr.co.jihun.guisample.service.ProjectMasterService;
 import kr.co.jihun.guisample.vo.ProjectMasterDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,13 +15,13 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/user/projects")
+@RequestMapping("/user/project")
 @RequiredArgsConstructor
 public class ProjectMasterRestController
 {
     private final ProjectMasterService projectMasterService;
 
-    @GetMapping("/list.json")
+    @GetMapping("/projects")
     public Map<String, Object> projectList(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int rows,
@@ -44,6 +46,24 @@ public class ProjectMasterRestController
         result.put("total",   totalPages);
         result.put("records", totalRecords);
         result.put("rows",    list);
+        return result;
+    }
+
+    @PostMapping("/projects")
+    public Map<String, Object> saveProject(@RequestBody ProjectMasterDTO projectMaster)
+    {
+        Map<String, Object> result = new HashMap<>();
+        try
+        {
+            ProjectMasterDTO saved = projectMasterService.createProjectMaster(projectMaster);
+            result.put("success",   true);
+            result.put("projectId", saved.getProjectId());
+        }
+        catch (Exception e)
+        {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
         return result;
     }
 }
