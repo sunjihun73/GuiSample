@@ -25,4 +25,10 @@ public class MainController
     {
         return "user/rag";
     }
+
+    @GetMapping({ "/embedding" })
+    public String embedding()
+    {
+        return "user/embedding";
+    }
 }

@@ -77,7 +77,7 @@
                 <a href="/user/projects">
                     <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" clip-rule="evenodd"
-                              d="M2 2.5A1.5 1.5 0 0 1 3.5 1h5.586a1 1 0 0 1 .707.293l3.414 3.414A1 1 0 0 1 13.5 5.5V13.5A1.5 1.5 0 0 1 12 15H3.5A1.5 1.5 0 0 1 2 13.5v-11ZM3.5 2a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5H12a.5.5 0 0 0 .5-.5V6H9.5A1.5 1.5 0 0 1 8 4.5V2H3.5Zm5 .207V4.5a.5.5 0 0 0 .5.5h2.293L8.5 2.207Z"/>
+                              d="M1 4a2 2 0 0 1 2-2h3.172a2 2 0 0 1 1.414.586l.828.828A1 1 0 0 0 9.121 4H13a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V4Zm2-.5a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5V6a.5.5 0 0 0-.5-.5H9.121a2 2 0 0 1-1.414-.586l-.828-.828A.5.5 0 0 0 6.172 3.5H3Z"/>
                     </svg>
                     <span class="nav-label">프로젝트</span>
                 </a>
@@ -86,16 +86,28 @@
             <li class="nav-menu__item">
                 <a href="/user/rag">
                     <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="8" cy="1.75" r="1"/>
                         <path fill-rule="evenodd" clip-rule="evenodd"
-                              d="M8 2.5a.6.6 0 0 1 .6.6V4h2.9A2.5 2.5 0 0 1 14 6.5v4A2.5 2.5 0 0 1 11.5 13h-7A2.5 2.5 0 0 1 2 10.5v-4A2.5 2.5 0 0 1 4.5 4h2.9v-.9A.6.6 0 0 1 8 2.5ZM4.5 5.5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-7Z"/>
-                        <circle cx="6" cy="8.5" r="1"/>
-                        <circle cx="10" cy="8.5" r="1"/>
-                        <path d="M.75 7.5a.75.75 0 0 1 .75.75v1a.75.75 0 0 1-1.5 0v-1a.75.75 0 0 1 .75-.75Zm14.5 0a.75.75 0 0 1 .75.75v1a.75.75 0 0 1-1.5 0v-1a.75.75 0 0 1 .75-.75Z"/>
+                              d="M3 2.5A1.5 1.5 0 0 0 1.5 4v6A1.5 1.5 0 0 0 3 11.5h1.5v2.19a.5.5 0 0 0 .82.385L8.68 11.5H13A1.5 1.5 0 0 0 14.5 10V4A1.5 1.5 0 0 0 13 2.5H3ZM3 4h10v6H8.5a.5.5 0 0 0-.32.115L6 11.94V11a1 1 0 0 0-1-1H3V4Z"/>
+                        <circle cx="5.5" cy="7" r="0.9"/>
+                        <circle cx="8" cy="7" r="0.9"/>
+                        <circle cx="10.5" cy="7" r="0.9"/>
                     </svg>
                     <span class="nav-label">RAG</span>
                 </a>
                 <span class="tooltip">RAG</span>
+            </li>
+            <li class="nav-menu__item">
+                <a href="/user/embedding">
+                    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3.6 3.9 12.4 3.9M3.6 3.9 7.7 12.1M12.4 3.9 7.7 12.1"
+                              stroke="currentColor" stroke-width="1.1" fill="none"/>
+                        <circle cx="3.6" cy="3.9" r="1.9"/>
+                        <circle cx="12.4" cy="3.9" r="1.9"/>
+                        <circle cx="7.7" cy="12.1" r="1.9"/>
+                    </svg>
+                    <span class="nav-label">Embedding</span>
+                </a>
+                <span class="tooltip">Embedding</span>
             </li>
         </ul>
     </aside>

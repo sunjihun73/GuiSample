@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>대시보드 — 업무관리 시스템</title>
+    <title>Embedding — 업무관리 시스템</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/common.css">
 </head>
 <body>
@@ -22,7 +22,6 @@
         <!-- 토글 버튼 -->
         <div class="sidebar__toggle">
             <button class="toggle-btn" id="toggleBtn" aria-label="메뉴 접기/펼치기" title="메뉴 접기/펼치기">
-                <!-- 왼쪽 화살표 (펼쳐진 상태) → 접히면 CSS로 180도 회전 -->
                 <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.5"
                           stroke-linecap="round" stroke-linejoin="round"/>
@@ -33,7 +32,7 @@
         <p class="sidebar__section-label">메뉴</p>
 
         <ul class="nav-menu">
-            <li class="nav-menu__item active">
+            <li class="nav-menu__item">
                 <a href="/user/dashboard">
                     <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                         <rect x="1" y="1" width="6" height="6" rx="1.5"/>
@@ -68,7 +67,7 @@
                 </a>
                 <span class="tooltip">RAG</span>
             </li>
-            <li class="nav-menu__item">
+            <li class="nav-menu__item active">
                 <a href="/user/embedding">
                     <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                         <path d="M3.6 3.9 12.4 3.9M3.6 3.9 7.7 12.1M12.4 3.9 7.7 12.1"
@@ -88,66 +87,42 @@
     <main class="main-content">
 
         <header class="page-header">
-            <h1 class="page-header__title">대시보드</h1>
+            <h1 class="page-header__title">Embedding</h1>
         </header>
 
-        <div class="stat-grid">
-            <div class="stat-card">
-                <p class="stat-card__label">전체 프로젝트</p>
-                <p class="stat-card__value">12</p>
-                <p class="stat-card__delta up">+2 이번 달</p>
+        <!-- ── 문서 업로드 폼 ── -->
+        <form id="embedForm" class="embed-card" onsubmit="return false;">
+            <div class="form-field">
+                <label for="embedSource" class="form-field__label">출처(source)</label>
+                <input type="text" id="embedSource" name="source"
+                       class="form-field__input"
+                       placeholder="예: 사내규정-v1" maxlength="200">
             </div>
-            <div class="stat-card">
-                <p class="stat-card__label">진행 중</p>
-                <p class="stat-card__value">5</p>
-                <p class="stat-card__delta">변동 없음</p>
-            </div>
-            <div class="stat-card">
-                <p class="stat-card__label">완료</p>
-                <p class="stat-card__value">7</p>
-                <p class="stat-card__delta up">+1 이번 주</p>
-            </div>
-            <div class="stat-card">
-                <p class="stat-card__label">팀원</p>
-                <p class="stat-card__value">24</p>
-                <p class="stat-card__delta up">+3 신규</p>
-            </div>
-        </div>
 
-        <h2 class="section-title">최근 활동</h2>
-        <div class="activity-list">
-            <div class="activity-item">
-                <span class="activity-item__dot"></span>
-                <span class="activity-item__text">프로젝트 <strong>Alpha</strong> 가 완료되었습니다.</span>
-                <span class="activity-item__time">방금 전</span>
+            <div class="form-field">
+                <label for="embedFile" class="form-field__label">텍스트 파일</label>
+                <input type="file" id="embedFile" name="file"
+                       class="embed-file"
+                       accept=".txt,.md,text/*">
             </div>
-            <div class="activity-item">
-                <span class="activity-item__dot"></span>
-                <span class="activity-item__text">새 프로젝트 <strong>Beta</strong> 가 생성되었습니다.</span>
-                <span class="activity-item__time">1시간 전</span>
+
+            <div class="embed-card__actions">
+                <button type="button" id="embedBtn" class="search-form__btn">업로드</button>
             </div>
-            <div class="activity-item">
-                <span class="activity-item__dot"></span>
-                <span class="activity-item__text">팀원 <strong>김철수</strong> 님이 합류했습니다.</span>
-                <span class="activity-item__time">3시간 전</span>
-            </div>
-            <div class="activity-item">
-                <span class="activity-item__dot"></span>
-                <span class="activity-item__text">프로젝트 <strong>Gamma</strong> 마일스톤 달성.</span>
-                <span class="activity-item__time">어제</span>
-            </div>
-        </div>
+
+            <div id="embedResult" class="embed-result" role="status" aria-live="polite"></div>
+        </form>
 
     </main>
 </div>
 
 <script>
+    /* ── 사이드바 토글 (다른 페이지와 동일) ───────────────── */
     (function () {
         var sidebar   = document.getElementById('sidebar');
         var toggleBtn = document.getElementById('toggleBtn');
         var STORAGE_KEY = 'sidebar_collapsed';
 
-        /* 저장된 상태 복원 */
         if (sessionStorage.getItem(STORAGE_KEY) === 'true') {
             sidebar.classList.add('collapsed');
         }
@@ -155,6 +130,89 @@
         toggleBtn.addEventListener('click', function () {
             var isCollapsed = sidebar.classList.toggle('collapsed');
             sessionStorage.setItem(STORAGE_KEY, isCollapsed);
+        });
+    })();
+
+    /* ── 문서 업로드 (파일 → 청킹 → 임베딩 적재) ──────────── */
+    (function () {
+        /* 백엔드: POST /user/rag/embedding  multipart/form-data { file, source }
+           → 200 application/json { success, source, chunkCount, message }
+             (성공/실패 모두 200, success 불리언으로 분기) */
+        var EMBED_URL = '${pageContext.request.contextPath}/user/rag/embedding';
+
+        var formEl   = document.getElementById('embedForm');
+        var sourceEl = document.getElementById('embedSource');
+        var fileEl   = document.getElementById('embedFile');
+        var btnEl    = document.getElementById('embedBtn');
+        var resultEl = document.getElementById('embedResult');
+
+        /* 결과 영역에 텍스트 표시 — textContent로만 삽입(XSS 방지). */
+        function showResult(text, state) {
+            resultEl.className = 'embed-result' + (state ? ' is-' + state : '');
+            resultEl.textContent = text;
+        }
+
+        async function handleUpload() {
+            var source = sourceEl.value.trim();
+            var file   = fileEl.files && fileEl.files[0];
+
+            if (!source) {
+                showResult('출처(source)를 입력해 주세요.', 'error');
+                sourceEl.focus();
+                return;
+            }
+            if (!file) {
+                showResult('업로드할 텍스트 파일을 선택해 주세요.', 'error');
+                fileEl.focus();
+                return;
+            }
+
+            var formData = new FormData();
+            /* 필드명은 백엔드 @RequestParam 과 정확히 일치해야 한다. */
+            formData.append('file', file);
+            formData.append('source', source);
+
+            btnEl.disabled = true;
+            var originalLabel = btnEl.textContent;
+            btnEl.textContent = '업로드 중...';
+            showResult('업로드 중...', 'loading');
+
+            try {
+                /* FormData 사용 시 Content-Type 을 직접 지정하지 않는다
+                   (브라우저가 multipart boundary 를 자동 설정). */
+                var res = await fetch(EMBED_URL, {
+                    method: 'POST',
+                    body:   formData
+                });
+
+                if (!res.ok) {
+                    throw new Error('HTTP ' + res.status);
+                }
+
+                var data = await res.json();
+
+                if (data && data.success) {
+                    var src   = (data.source != null) ? String(data.source) : source;
+                    var count = (data.chunkCount != null) ? data.chunkCount : 0;
+                    showResult(src + ' · ' + count + '개 청크 저장 완료', 'success');
+                } else {
+                    var msg = (data && data.message)
+                        ? String(data.message)
+                        : '업로드에 실패했습니다.';
+                    showResult(msg, 'error');
+                }
+            } catch (e) {
+                showResult('업로드 중 오류가 발생했습니다. (' + e.message + ')', 'error');
+            } finally {
+                btnEl.disabled = false;
+                btnEl.textContent = originalLabel;
+            }
+        }
+
+        btnEl.addEventListener('click', handleUpload);
+        formEl.addEventListener('submit', function (e) {
+            e.preventDefault();
+            handleUpload();
         });
     })();
 </script>
