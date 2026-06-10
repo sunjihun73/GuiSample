@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Embedding — 업무관리 시스템</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/common.css">
+
+    <!-- jQuery UI (jqGrid 테마) -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.min.css">
+    <!-- free-jqGrid CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/css/ui.jqgrid.min.css">
 </head>
 <body>
 
@@ -90,30 +95,73 @@
             <h1 class="page-header__title">Embedding</h1>
         </header>
 
-        <!-- ── 문서 업로드 폼 ── -->
-        <form id="embedForm" class="embed-card" onsubmit="return false;">
-            <div class="form-field">
-                <label for="embedSource" class="form-field__label">출처(source)</label>
-                <input type="text" id="embedSource" name="source"
-                       class="form-field__input"
-                       placeholder="예: 사내규정-v1" maxlength="200">
+        <div class="content-split">
+
+            <!-- ── 좌측: 카테고리 목록 그리드 ── -->
+            <div class="content-split__col">
+                <div class="grid-header">
+                    <span class="grid-header__title">카테고리 목록</span>
+                    <div class="search-form__actions">
+                        <button type="button" id="btnCategoryRead" class="search-form__btn">조회</button>
+                        <button type="button" id="btnCategoryCreate" class="search-form__btn">등록</button>
+                    </div>
+                </div>
+
+                <div class="grid-wrap">
+                    <table id="categoryGrid"></table>
+                    <div id="categoryGridPager"></div>
+                </div>
             </div>
 
-            <div class="form-field">
-                <label for="embedFile" class="form-field__label">텍스트 파일</label>
-                <input type="file" id="embedFile" name="file"
-                       class="embed-file"
-                       accept=".txt,.md,text/*">
+            <!-- ── 우측: 문서 업로드 폼 ── -->
+            <div class="content-split__col">
+                <form id="embedForm" class="embed-card" onsubmit="return false;">
+                    <div class="form-field">
+                        <label for="embedSource" class="form-field__label">출처(source)</label>
+                        <input type="text" id="embedSource" name="source"
+                               class="form-field__input"
+                               placeholder="예: 사내규정-v1" maxlength="200">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="embedFile" class="form-field__label">텍스트 파일</label>
+                        <input type="file" id="embedFile" name="file"
+                               class="embed-file"
+                               accept=".txt,.md,text/*">
+                    </div>
+
+                    <div class="embed-card__actions">
+                        <button type="button" id="embedBtn" class="search-form__btn">업로드</button>
+                    </div>
+
+                    <div id="embedResult" class="embed-result" role="status" aria-live="polite"></div>
+                </form>
             </div>
 
-            <div class="embed-card__actions">
-                <button type="button" id="embedBtn" class="search-form__btn">업로드</button>
-            </div>
-
-            <div id="embedResult" class="embed-result" role="status" aria-live="polite"></div>
-        </form>
+        </div>
 
     </main>
+</div>
+
+<!-- ── 카테고리 등록 레이어 팝업 ── -->
+<div class="layer-popup" id="categoryPopup" aria-hidden="true">
+    <div class="layer-popup__dim" id="categoryPopupDim"></div>
+    <div class="layer-popup__panel" role="dialog" aria-modal="true" aria-labelledby="categoryPopupTitle">
+        <div class="layer-popup__header">
+            <h2 class="layer-popup__title" id="categoryPopupTitle">카테고리 등록</h2>
+        </div>
+        <div class="layer-popup__body">
+            <div class="form-field">
+                <label for="popupCategoryName" class="form-field__label">카테고리명</label>
+                <input type="text" id="popupCategoryName" class="form-field__input"
+                       placeholder="카테고리명을 입력하세요" maxlength="200">
+            </div>
+        </div>
+        <div class="layer-popup__footer">
+            <button type="button" id="btnCategoryPopupSave"   class="search-form__btn">저장</button>
+            <button type="button" id="btnCategoryPopupCancel" class="search-form__btn search-form__btn--ghost">취소</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -215,6 +263,123 @@
             handleUpload();
         });
     })();
+</script>
+
+<!-- jQuery / jqGrid (카테고리 목록 그리드용) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/jquery.jqgrid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/i18n/grid.locale-kr.min.js"></script>
+
+<script>
+    $(function () {
+        var listUrl = '${pageContext.request.contextPath}/user/category/categories';
+
+        // yyyy-mm-dd hh:mm:ss 형태로 변환 (DB 타임스탬프 문자열의 앞 19자리 사용)
+        function dateTimeFormatter(cellValue) {
+            if (!cellValue) {
+                return "";
+            }
+            return String(cellValue).replace("T", " ").substring(0, 19);
+        }
+
+        // 페이지 로딩 시 GET /user/category/categories 로 목록 자동 조회
+        $("#categoryGrid").jqGrid({
+            url:       listUrl,
+            datatype:  "json",
+            mtype:     "GET",
+            colNames:  ["카테고리 ID", "카테고리명", "생성일"],
+            colModel: [
+                { name: "categoryId",   index: "categoryId",   width: 120, align: "center", hidden: true },
+                { name: "categoryName", index: "categoryName", width: 200 },
+                { name: "createDate",   index: "createDate",   width: 160, align: "center", formatter: dateTimeFormatter }
+            ],
+            jsonReader: {
+                root:        "rows",
+                page:        "page",
+                total:       "total",
+                records:     "records",
+                repeatitems: false,
+                id:          "categoryId"
+            },
+            pager:        "#categoryGridPager",
+            rownumbers:   true,
+            rownumWidth:  56,
+            rowNum:       10,
+            rowList:      [10, 20, 50, 100],
+            viewrecords:  true,
+            autowidth:    true,
+            height:       "520",
+            emptyrecords: "조회된 데이터가 없습니다.",
+            loadError: function (xhr, status, error) {
+                alert("목록 조회 중 오류가 발생했습니다.\n" + status + " : " + error);
+            }
+        });
+
+        // "조회" 클릭 → 카테고리 목록 조회 (jqGrid 내부 jQuery $.ajax GET)
+        $("#btnCategoryRead").on("click", function () {
+            $("#categoryGrid").jqGrid("setGridParam", {
+                datatype: "json",
+                url:      listUrl,
+                page:     1
+            }).trigger("reloadGrid");
+        });
+
+        /* ── 카테고리 등록 레이어 팝업 (projects.jsp 패턴) ── */
+        var saveUrl = listUrl;   // POST /user/category/categories
+        var $popup  = $("#categoryPopup");
+
+        function openCreatePopup() {
+            $("#popupCategoryName").val("");
+            $popup.addClass("is-open").attr("aria-hidden", "false");
+            $("#popupCategoryName").trigger("focus");
+        }
+
+        function closePopup() {
+            $popup.removeClass("is-open").attr("aria-hidden", "true");
+        }
+
+        function saveCategory() {
+            var categoryName = $.trim($("#popupCategoryName").val());
+
+            if (categoryName === "") {
+                alert("카테고리명을 입력하세요.");
+                $("#popupCategoryName").trigger("focus");
+                return;
+            }
+
+            $("#btnCategoryPopupSave").prop("disabled", true);
+
+            $.ajax({
+                url:         saveUrl,
+                type:        "POST",
+                contentType: "application/json",
+                dataType:    "json",
+                data:        JSON.stringify({ categoryName: categoryName })
+            }).done(function (data) {
+                if (data && data.success) {
+                    closePopup();
+                    $("#categoryGrid").jqGrid("setGridParam", {
+                        datatype: "json",
+                        url:      listUrl,
+                        page:     1
+                    }).trigger("reloadGrid");
+                } else {
+                    alert("저장에 실패했습니다.\n" + ((data && data.message) || ""));
+                }
+            })
+            .fail(function (xhr, status, error) {
+                alert("저장 중 오류가 발생했습니다.\n" + status + " : " + error);
+            })
+            .always(function () {
+                $("#btnCategoryPopupSave").prop("disabled", false);
+            });
+        }
+
+        $("#btnCategoryCreate").on("click", openCreatePopup);
+        $("#btnCategoryPopupCancel").on("click", closePopup);
+        $("#categoryPopupDim").on("click", closePopup);
+        $("#btnCategoryPopupSave").on("click", saveCategory);
+    });
 </script>
 
 </body>

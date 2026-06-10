@@ -72,8 +72,7 @@
         <include refid="projectMasterWhere"/>
     </select>
 
-    <insert id="insertProjectMaster"
-            parameterType="kr.co.jihun.guisample.vo.ProjectMasterDTO">
+    <insert id="insertProjectMaster" parameterType="kr.co.jihun.guisample.vo.ProjectMasterDTO">
         INSERT INTO project_master (
             project_id,
             project_name,
@@ -93,8 +92,7 @@
         )
     </insert>
 
-    <update id="updateProjectMaster"
-            parameterType="kr.co.jihun.guisample.vo.ProjectMasterDTO">
+    <update id="updateProjectMaster" parameterType="kr.co.jihun.guisample.vo.ProjectMasterDTO">
         UPDATE project_master
         SET
             project_name       = #{projectName},

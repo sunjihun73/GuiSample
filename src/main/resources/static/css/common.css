@@ -909,4 +909,38 @@ body {
 .embed-result:empty { display: none; }
 .embed-result.is-success { color: #1a7f37; border-color: #1a7f37; }
 .embed-result.is-error   { color: #d70015; border-color: #d70015; }
+
+/* ══ content 좌우 분할 레이아웃 ══════════════════════════ */
+/* content 영역 좌우 1:1 분할 */
+.content-split {
+    display: flex;
+    gap: var(--sp-xxl, 24px);
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+.content-split__col {
+    flex: 1 1 0;
+    min-width: 0;   /* jqGrid autowidth 계산이 깨지지 않도록 */
+}
+
+/* 그리드 상단 헤더바: 좌측 제목 + 우측 등록 버튼 */
+.grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--sp-md, 12px);
+}
+.grid-header__title {
+    font-family: var(--font-text);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--ink);
+}
+
+/* 그리드 셀 padding 축소 → row 높이 감소 */
+#categoryGrid.ui-jqgrid-btable td {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
 .embed-result.is-loading { color: var(--ink-muted-48); }
