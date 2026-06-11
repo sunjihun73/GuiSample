@@ -2,7 +2,7 @@ package kr.co.jihun.guisample.controller.user;
 
 import kr.co.jihun.guisample.dto.EmbeddingResponse;
 import kr.co.jihun.guisample.service.AIService;
-import kr.co.jihun.guisample.service.EmbeddingService;
+import kr.co.jihun.guisample.service.KnowledgeFileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,7 +24,7 @@ import java.util.Map;
 public class AIRestController
 {
     private final AIService aiService;
-    private final EmbeddingService embeddingService;
+    private final KnowledgeFileService knowledgeFileService;
 
     /**
      * RAG 답변 스트리밍(SSE). 전체 경로: POST /user/rag/docs
@@ -41,19 +41,20 @@ public class AIRestController
     }
 
     /**
-     * 텍스트 파일 인덱싱. 전체 경로: POST /user/rag/embedding
-     * 업로드 파일을 청킹·임베딩하여 pgvector(vector_store)에 적재한다.
+     * 지식파일 업로드(인덱싱). 전체 경로: POST /user/rag/embedding
+     * 업로드 파일을 청킹·임베딩하여 pgvector(vector_store)에 적재하고,
+     * 원본 파일을 디스크에 저장한 뒤 knowledge_files 테이블에 메타 정보를 기록한다.
      *
-     * @param file   업로드된 plain text(UTF-8) 파일 (필수)
-     * @param source 메타데이터에 저장할 출처 식별자 (필수)
+     * @param file       업로드된 plain text(UTF-8) 파일 (필수)
+     * @param categoryId 지식파일이 속한 카테고리 ID — metadata.source 및 knowledge_files.category_id (필수)
      * @return 적재 결과 EmbeddingResponse (성공/실패 모두 HTTP 200 JSON)
      */
     @PostMapping(value = "/embedding",
                  consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
                  produces = MediaType.APPLICATION_JSON_VALUE)
     public EmbeddingResponse embedding(@RequestParam("file") MultipartFile file,
-                                       @RequestParam("source") String source)
+                                       @RequestParam("categoryId") String categoryId)
     {
-        return embeddingService.ingest(file, source);
+        return knowledgeFileService.upload(file, categoryId);
     }
 }

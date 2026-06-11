@@ -218,3 +218,30 @@ public EmbeddingResponse embedding(@RequestParam("file") MultipartFile file,
   - `TokenTextSplitter.builder().withChunkSize(int).build()` — sources jar 확인
   - `TextSplitter.apply(List<Document>)` / `split(Document)` — sources jar 확인
   - `new Document(String text, Map<String,Object> metadata)` — sources jar 확인 (id 미지정 → build 시 UUID 자동 생성)
+
+---
+
+## 변경 이력 추가 — 지식파일 관리 확장 (2026-06-11)
+
+기존 "출처(source) 자유입력 단일 업로드 폼"을 **지식파일 목록 그리드 + 파일선택 팝업 + knowledge_files 메타 관리**로 확장.
+
+### 핵심 설계 결정 (jar 검증 완료)
+- **vector_store 스키마에 물리 `file_id` 컬럼 없음.** 기본 스키마(PgVectorStore.class strings 확인):
+  `CREATE TABLE vector_store (id uuid DEFAULT uuid_generate_v4(), content text, metadata json, embedding vector(1536))`.
+  → 요구사항 7.12/7.13의 "vector_store의 file_id"는 **metadata 안에서** 충족.
+- **TokenTextSplitter 자동 메타데이터 키 = `parent_document_id`** (TextSplitter.class 바이트코드 확인: `createDocuments`가 각 청크 metadata에 `parent_document_id` = 부모 Document.getId() 주입). 사용자가 말한 "parents_file_id"의 실제 키명.
+- 따라서: 부모 `new Document(fileId, text, Map.of("source", categoryId))` 로 생성 →
+  각 청크 metadata = `{"source": categoryId, "parent_document_id": fileId}`, 청크 자신의 id = 새 UUID(7.5).
+  → 7.5/7.6/7.7/7.8/7.12/7.13 동시 충족.
+- **카테고리 결정**: 왼쪽 카테고리 그리드 선택 행의 categoryId 사용(사용자 확정). 미선택 시 등록 차단.
+- **테이블 생성 안 함**(사용자 지시). knowledge_files 기존 존재 가정. DDL 실행/파일 생성 모두 미수행.
+
+### API
+| Method | Path | 요청 | 응답 |
+|--------|------|------|------|
+| GET | `/user/knowledge/knowledges` | page,rows | `{page,total,records,rows:[KnowledgeFileVO]}` (jqGrid) |
+| POST | `/user/rag/embedding` | multipart `file`,`categoryId` | `EmbeddingResponse{success,fileId,categoryId,fileName,chunkCount,message}` |
+
+### 업로드 파이프라인 (KnowledgeFileService.upload)
+fileId=UUID → 텍스트추출(UTF-8) → EmbeddingService.embed(text,categoryId,fileId) (청킹·임베딩) →
+`/home/sunjihun/mydev/upload_files/knowledge_files/{fileId}_{원본명}` 저장 → knowledge_files insert.

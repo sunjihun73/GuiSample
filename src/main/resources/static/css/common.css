@@ -420,7 +420,7 @@ body {
     color: #fff;
     background: var(--primary);
     border: none;
-    border-radius: var(--rounded-pill);
+    border-radius: var(--rounded-sm);
     cursor: pointer;
     transition: background-color 0.12s, transform 0.08s ease-out;
 }
@@ -835,7 +835,7 @@ body {
     color: #fff;
     background: var(--primary);
     border: none;
-    border-radius: var(--rounded-pill);
+    border-radius: var(--rounded-sm);
     cursor: pointer;
     transition: background-color 0.12s, transform 0.08s ease-out;
 }

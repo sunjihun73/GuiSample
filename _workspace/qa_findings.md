@@ -1,33 +1,47 @@
-# QA Findings — 파일 업로드 임베딩 기능
+# QA Findings — 지식파일 관리 확장 (2026-06-11)
 
-> 검증: orchestrator(통합 검증) | 날짜: 2026-06-05
+> 검증: orchestrator(통합 정적 검증) | 이전 임베딩 검증 이력은 git/01·03 요약 참조
 
-## 정적 검증 결과 (PASS)
-
+## 요구사항 매핑 (PASS)
 | # | 요구사항 | 구현 위치 | 상태 |
 |---|---------|----------|------|
-| 1 | 파일 선택 + 업로드 + source 입력 | embedding.jsp 업로드 폼 | ✅ |
-| 2 | POST /user/rag/embedding | AIRestController `@PostMapping("/embedding")` | ✅ |
-| 3 | TokenTextSplitter 청킹 | EmbeddingService | ✅ |
-| 4 | 청크 사이즈 800 토큰 | `withChunkSize(800)` | ✅ |
-| 5 | vector_store 테이블 | pgvector starter 자동관리 | ✅ |
-| 6 | id = GUID | `new Document(...)` → UUID 자동 | ✅ |
-| 7 | content = 청크 텍스트 | VectorStore.add | ✅ |
-| 8 | metadata {"source":값} | `Map.of("source", source)` | ✅ |
-| 9 | embedding 컬럼 | VectorStore.add 내부 EmbeddingModel | ✅ |
+| 1 | 우측 절반 "지식파일 목록" 그리드 | embedding.jsp #knowledgeGrid | ✅ |
+| 2 | 초기 GET /user/knowledge/knowledges (jQuery AJAX) | jqGrid url+mtype:GET (내부 $.ajax) | ✅ |
+| 3 | knowledge_files 테이블 조회 | KnowledgeFileMapper.xml | ✅ |
+| 4 | 우상단 조회/등록 버튼 | #btnKnowledgeRead, #btnKnowledgeCreate | ✅ |
+| 5 | 조회 클릭 → 목록 재조회 | reloadKnowledgeGrid() | ✅ |
+| 6 | 등록 클릭 → 파일선택 레이어 팝업 | #knowledgePopup openKnowledgePopup() | ✅ |
+| 7.1 | 업로드 POST /user/rag/embedding | AIRestController | ✅ |
+| 7.2 | TokenTextSplitter 청킹 | EmbeddingService.embed | ✅ |
+| 7.3 | 800토큰 | withChunkSize(800) | ✅ |
+| 7.4 | vector_store | pgvector starter 자동관리 | ✅ |
+| 7.5 | 청크 id = UUID | Document.builder 자동(청크별) | ✅ |
+| 7.6 | content = 청크 | VectorStore.add | ✅ |
+| 7.7 | metadata {"source":categoryId} | new Document(fileId,text,Map.of("source",categoryId)) | ✅ |
+| 7.8 | embedding 컬럼 | VectorStore.add 내부 EmbeddingModel | ✅ |
+| 7.9 | 파일 디스크 저장 | KnowledgeFileService.saveToDisk (UPLOAD_DIR) | ✅ |
+| 7.10 | knowledge_files insert | insertKnowledgeFile | ✅ |
+| 7.11 | file_id = UUID | UUID.randomUUID() | ✅ |
+| 7.12 | vector_store file_id = file_id | metadata.parent_document_id = fileId | ✅ |
+| 7.13 | file_id == 자동 parent_document_id | 부모 Document id=fileId → 자동 주입 | ✅ |
 
 ## 경계면 교차 검증 (PASS)
+- multipart 필드 ↔ FormData: `file`,`categoryId` 일치
+- 목록 Map shape ↔ jqGrid jsonReader: page/total/records/rows, id=fileId
+- ResultMap column ↔ VO property: 8필드 일치
+- SQL 컬럼 ↔ knowledge_files DDL: insert/select 일치, category_master 조인
+- 업로드 응답 record ↔ JS: success/message 사용 일치
+- Mapper namespace ↔ interface FQN + 3메서드
 
-- **컨트롤러 multipart 필드 ↔ FormData**: `@RequestParam("file"/"source")` ↔ `formData.append('file'/'source')` 일치 ✅
-- **응답 DTO ↔ JS 파서**: record `{success, source, chunkCount, message}` ↔ `data.success/source/chunkCount/message` 일치 ✅
-- **엔드포인트 경로**: `/user/rag/embedding` ↔ JS `EMBED_URL` 일치 ✅
-- **FormData Content-Type**: JS에서 헤더 직접 미지정(브라우저 boundary 자동) ✅
-
-## 빌드 검증
-
-- `./gradlew compileJava` → BUILD SUCCESSFUL ✅
+## 빌드
+- `./gradlew clean compileJava` → BUILD SUCCESSFUL ✅
 
 ## 런타임 미검증 (제약)
+- 라이브 PostgreSQL(pgvector) + OPENAI_API_KEY + knowledge_files 테이블 존재 필요.
+- 권장 수동검증: ① 카테고리 행 선택 후 등록→파일 업로드→success ② vector_store에서
+  `metadata->>'source'`=categoryId, `metadata->>'parent_document_id'`=knowledge_files.file_id 확인
+  ③ 디스크 `/home/sunjihun/mydev/upload_files/knowledge_files/` 파일 생성 확인
+  ④ 카테고리 미선택 시 등록 차단 alert.
 
-- `bootRun` 기동 후 실제 업로드→DB 적재→챗봇 반영 시나리오는 **라이브 PostgreSQL(pgvector) + OPENAI_API_KEY 필요**로 본 단계에서 미실행.
-- 권장 수동 검증: ① 텍스트 파일+source 업로드 → success:true/chunkCount>0, ② DB `vector_store`에서 `metadata->>'source'`, id(uuid), embedding non-null 확인, ③ 빈 파일 → success:false.
+## 비고
+- common.css의 `.embed-card`, `.embed-card__actions`는 폼 제거로 미사용(고아) — 무해, 보존.
