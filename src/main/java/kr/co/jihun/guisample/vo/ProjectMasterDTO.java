@@ -12,6 +12,7 @@ public class ProjectMasterDTO
     private String projectId;
     private String projectName;
     private String projectOwnerName;
+    private String projectDescription;
     private String updateUserId;
     private String updateDate;
     private String createUserId;

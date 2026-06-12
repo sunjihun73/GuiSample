@@ -30,14 +30,18 @@ public class AIRestController
      * RAG 답변 스트리밍(SSE). 전체 경로: POST /user/rag/docs
      * 각 답변 토큰을 text/event-stream 의 data 이벤트로 전송한다.
      *
-     * @param body { "query": "질문" }
+     * @param body { "query": "질문", "categoryId": "카테고리 UUID(선택)" }
+     *             categoryId 가 null/누락/공백이면 필터 없이 전체 벡터 검색.
      * @return 답변 토큰 스트림
      */
     @PostMapping(value = "/docs", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> getDocs(@RequestBody Map<String, Object> body)
     {
-        Object query = body == null ? null : body.get("query");
-        return aiService.getDocs(query == null ? null : query.toString());
+        Object query      = body == null ? null : body.get("query");
+        Object categoryId = body == null ? null : body.get("categoryId");
+        return aiService.getDocs(
+                query == null ? null : query.toString(),
+                categoryId == null ? null : categoryId.toString());
     }
 
     /**

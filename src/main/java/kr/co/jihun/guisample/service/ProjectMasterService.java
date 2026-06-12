@@ -27,6 +27,13 @@ public class ProjectMasterService
         return projectMasterMapper.countProjectMaster(param);
     }
 
+    public ProjectMasterDTO selectProjectMaster(String projectId)
+    {
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("projectId", projectId);
+        return projectMasterMapper.selectProjectMaster(param);
+    }
+
     public ProjectMasterDTO createProjectMaster(ProjectMasterDTO projectMaster)
     {
         // project_id 는 GUID 로 서비스에서 생성

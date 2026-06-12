@@ -80,3 +80,14 @@ spring:
 - `TokenTextSplitter.builder()` → `Builder.withChunkSize(int)` → `build()`
 - `TextSplitter.apply(List<Document>)`
 - `new Document(String text, Map<String,Object> metadata)` (id 미지정 → UUID 자동 부여)
+
+## 2026-06-12 categoryId 필터 추가
+
+- `AIRestController.getDocs`: body에서 `categoryId`(선택)를 추가 추출하여 서비스로 전달.
+  - 요청 계약: `POST /user/rag/docs` body `{ "query": "...", "categoryId": "UUID(선택)" }`
+  - `categoryId` null/누락/공백이면 필터 없이 전체 벡터 검색 (기존 동작 유지).
+- `AIService.getDocs(String query, String categoryId)`로 시그니처 변경.
+  - `FilterExpressionBuilder().eq("category_id", categoryId).build()` → `SearchRequest.Builder.filterExpression(Filter.Expression)`.
+  - PgVectorStore가 `metadata->>'category_id' = ?` JSONB 조건으로 변환.
+- 응답 shape(text/event-stream 토큰 스트림)은 변경 없음.
+- `./gradlew compileJava` 통과 확인 (Spring AI 2.0.0-M4).

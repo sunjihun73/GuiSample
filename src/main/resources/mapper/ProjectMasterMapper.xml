@@ -7,6 +7,7 @@
         <id     property="projectId"         column="project_id"/>
         <result property="projectName"       column="project_name"/>
         <result property="projectOwnerName"  column="project_owner_name"/>
+        <result property="projectDescription" column="project_description"/>
         <result property="updateUserId"      column="update_user_id"/>
         <result property="updateDate"        column="update_date"/>
         <result property="createUserId"      column="create_user_id"/>
@@ -17,6 +18,7 @@
         project_id,
         project_name,
         project_owner_name,
+        project_description,
         update_user_id,
         update_date,
         create_user_id,
@@ -77,6 +79,7 @@
             project_id,
             project_name,
             project_owner_name,
+            project_description,
             create_user_id,
             create_date,
             update_user_id,
@@ -85,6 +88,7 @@
             #{projectId},
             #{projectName},
             #{projectOwnerName},
+            #{projectDescription},
             #{createUserId},
             NOW(),
             #{updateUserId},
@@ -95,9 +99,10 @@
     <update id="updateProjectMaster" parameterType="kr.co.jihun.guisample.vo.ProjectMasterDTO">
         UPDATE project_master
         SET
-            project_name       = #{projectName},
-            project_owner_name = #{projectOwnerName},
-            update_user_id     = #{updateUserId},
+            project_name        = #{projectName},
+            project_owner_name  = #{projectOwnerName},
+            project_description = #{projectDescription},
+            update_user_id      = #{updateUserId},
             update_date        = NOW()
         WHERE
             project_id = #{projectId}

@@ -45,3 +45,11 @@
 
 ## 비고
 - common.css의 `.embed-card`, `.embed-card__actions`는 폼 제거로 미사용(고아) — 무해, 보존.
+
+## 2026-06-12 카테고리 필터 검색 — 경계면 검증
+
+- [PASS] JS 요청 body `{query, categoryId}` ↔ `AIRestController.getDocs` `body.get("query"/"categoryId")` 일치. categoryId 생략 시 null → 필터 미적용.
+- [PASS] 필터 키 `category_id` ↔ 임베딩 적재 키 일치 (`EmbeddingService.java:51` parent Document metadata `Map.of("category_id", categoryId)`, TokenTextSplitter가 청크에 복사).
+- [PASS] 카테고리 목록 응답 shape `{page,total,records,rows:[{categoryId,categoryName}]}` ↔ JS 파서(`data.rows` 배열, `categoryId`/`categoryName` 필드) 일치 (`CategoryMasterRestController.categoryList`, `CategoryMasterVO`).
+- [PASS] `./gradlew compileJava` 통과 — Spring AI 2.0.0-M4 `FilterExpressionBuilder`/`SearchRequest.Builder.filterExpression` 시그니처 검증.
+- 비고: 본 사이클은 서브 에이전트 Edit 권한 거부로 오케스트레이터가 에이전트 준비안을 직접 적용. 검증도 오케스트레이터 인라인 수행.

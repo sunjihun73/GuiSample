@@ -910,6 +910,81 @@ body {
 .embed-result.is-success { color: #1a7f37; border-color: #1a7f37; }
 .embed-result.is-error   { color: #d70015; border-color: #d70015; }
 
+/* ══ RAG 카테고리 패널 + 채팅 2단 레이아웃 ═══════════════ */
+/* page-header 아래 본문: 좌측 카테고리 패널(약 1/5) + 우측 채팅창 */
+.rag-body {
+    flex: 1;
+    min-height: 0;               /* 채팅 메시지 영역 스크롤이 동작하도록 */
+    display: flex;
+    gap: var(--sp-lg);
+}
+.rag-body .chat-window {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 좌측 카테고리 패널 — 내비게이션 .sidebar 와 별도 네이밍 */
+.rag-cat-panel {
+    flex: 0 0 20%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--rounded-lg);
+    padding: var(--sp-md);
+    overflow-y: auto;
+}
+.rag-cat-panel__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-muted-80);
+    margin: 0 0 var(--sp-sm);
+    padding: 0 var(--sp-xs);
+}
+
+/* 카테고리 버튼 세로 목록 (그리드 미사용) */
+.rag-cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-xxs);
+}
+.rag-cat-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-family: var(--font-text);
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--ink);
+    background: var(--canvas);
+    border: 1px solid transparent;
+    border-radius: var(--rounded-md);
+    padding: var(--sp-xs) var(--sp-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 0.12s, color 0.12s;
+}
+.rag-cat-btn:hover {
+    background: var(--canvas-parchment);
+}
+.rag-cat-btn.is-selected {
+    background: #e8f0fb;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* 카테고리 로딩 상태/오류 메시지 */
+.rag-cat-msg {
+    font-size: 13px;
+    color: var(--ink-muted-80);
+    padding: var(--sp-xs) var(--sp-xs);
+}
+.rag-cat-msg:empty { display: none; }
+.rag-cat-msg.is-error { color: #d70015; }
+
 /* ══ content 좌우 분할 레이아웃 ══════════════════════════ */
 /* content 영역 좌우 1:1 분할 */
 .content-split {

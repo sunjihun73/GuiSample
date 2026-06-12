@@ -11,8 +11,21 @@
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.min.css">
     <!-- free-jqGrid CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/css/ui.jqgrid.min.css">
-
     <style>
+        /* 리치 에디터(TinyMCE)가 들어가므로 이 팝업만 기본 480px 보다 넓힘 */
+        #projectPopup .layer-popup__panel { width: 800px; }
+        #projectPopup .layer-popup__body {
+            padding-left: var(--sp-lg);
+            padding-right: var(--sp-lg);
+        }
+
+        /* TinyMCE placeholder textarea — 에디터 초기화 전 임시 표시 */
+        #popupProjectDescription {
+            width: 100%;
+            height: 220px;
+            box-sizing: border-box;
+        }
+
         /* 그리드 셀 padding 축소 → row 높이 감소 */
         #projectGrid.ui-jqgrid-btable td {
             padding-top: 2px;
@@ -92,9 +105,9 @@
                         <circle cx="8" cy="7" r="0.9"/>
                         <circle cx="10.5" cy="7" r="0.9"/>
                     </svg>
-                    <span class="nav-label">RAG</span>
+                    <span class="nav-label">RAG 챗봇</span>
                 </a>
-                <span class="tooltip">RAG</span>
+                <span class="tooltip">RAG 챗봇</span>
             </li>
             <li class="nav-menu__item">
                 <a href="/user/embedding">
@@ -162,6 +175,11 @@
                 <input type="text" id="popupProjectOwnerName" class="form-field__input"
                        placeholder="담당자를 입력하세요" maxlength="100">
             </div>
+            <div class="form-field">
+                <label for="popupProjectDescription" class="form-field__label">프로젝트 설명</label>
+                <textarea id="popupProjectDescription" name="popupProjectDescription"
+                          placeholder="프로젝트 설명을 입력하세요"></textarea>
+            </div>
         </div>
         <div class="layer-popup__footer">
             <button type="button" id="btnPopupSave"   class="search-form__btn">저장</button>
@@ -174,6 +192,9 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/jquery.jqgrid.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/i18n/grid.locale-kr.min.js"></script>
+
+<!-- TinyMCE 6.8.6 (로컬 static 서빙, MIT) -->
+<script src="${pageContext.request.contextPath}/tinymce/tinymce.min.js"></script>
 
 <script>
     (function () {
@@ -193,6 +214,53 @@
 
     $(function () {
         var listUrl = '${pageContext.request.contextPath}/user/project/projects';
+
+        /* ── 프로젝트 설명 TinyMCE (팝업 최초 오픈 시 1회 초기화 후 재사용) ── */
+        var TINYMCE_BASE = '${pageContext.request.contextPath}/tinymce';
+
+        var descEditor        = null;    // 초기화 완료된 TinyMCE Editor 인스턴스
+        var descEditorLoading = false;   // 중복 초기화 방지
+        var pendingDescHtml   = '';      // 에디터 초기화 완료 전 적용 대기 HTML
+
+        /* 팝업이 display:none 인 동안 초기화하면 iframe 크기 계산이 깨지므로
+           팝업이 열린(is-open) 뒤 최초 1회만 초기화한다. */
+        function ensureDescEditor() {
+            if (descEditor || descEditorLoading) return;
+            descEditorLoading = true;
+
+            tinymce.init({
+                selector:     '#popupProjectDescription',
+                language:     'ko_KR',
+                language_url: TINYMCE_BASE + '/langs/ko_KR.js',
+                height:       300,
+                menubar:      false,
+                statusbar:    false,
+                branding:     false,
+                promotion:    false,
+                convert_urls: false,
+                plugins:      'lists link table autolink searchreplace charmap',
+                toolbar:      'undo redo | blocks fontsize | bold italic underline strikethrough forecolor backcolor | ' +
+                              'alignleft aligncenter alignright | bullist numlist | table link charmap | removeformat'
+            }).then(function (editors) {
+                descEditor = editors[0];
+                descEditor.setContent(pendingDescHtml);
+            });
+        }
+
+        /* 에디터 내용 전체 교체 (초기화 전이면 대기시켰다가 init 완료 시 반영) */
+        function setDescHtml(html) {
+            pendingDescHtml = html || '';
+            if (descEditor) {
+                descEditor.setContent(pendingDescHtml);
+            }
+        }
+
+        /* 에디터 내용 조회 — 초기화 완료 전이면 마지막 setDescHtml 값을 반환해
+           수정 모드의 설명 유실을 막는다. */
+        function getDescHtml() {
+            if (!descEditor) return pendingDescHtml;
+            return descEditor.getContent();
+        }
 
         // yyyy-mm-dd hh:mm:ss 형태로 변환 (DB 타임스탬프 문자열의 앞 19자리 사용)
         function dateTimeFormatter(cellValue) {
@@ -277,17 +345,22 @@
             $("#popupProjectName").val("");
             $("#popupProjectOwnerName").val("");
             $popup.addClass("is-open").attr("aria-hidden", "false");
+            ensureDescEditor();     // 팝업이 보이는 상태에서 생성해야 크기 계산이 정상
+            setDescHtml("");
             $("#popupProjectName").trigger("focus");
         }
 
-        function openEditPopup(rowData) {
+        // project: 단건 조회 API(GET /projects/{id})의 project 객체
+        function openEditPopup(project) {
             popupMode = "edit";
             $("#projectPopupTitle").text("프로젝트 수정");
             $("#popupProjectIdField").show();
-            $("#popupProjectId").val(rowData.projectId);
-            $("#popupProjectName").val(rowData.projectName);
-            $("#popupProjectOwnerName").val(rowData.projectOwnerName);
+            $("#popupProjectId").val(project.projectId);
+            $("#popupProjectName").val(project.projectName);
+            $("#popupProjectOwnerName").val(project.projectOwnerName);
             $popup.addClass("is-open").attr("aria-hidden", "false");
+            ensureDescEditor();     // 팝업이 보이는 상태에서 생성해야 크기 계산이 정상
+            setDescHtml(project.projectDescription || "");
             $("#popupProjectName").trigger("focus");
         }
 
@@ -327,8 +400,9 @@
                 contentType: "application/json",
                 dataType:    "json",
                 data:        JSON.stringify({
-                    projectName:      projectName,
-                    projectOwnerName: projectOwnerName
+                    projectName:        projectName,
+                    projectOwnerName:   projectOwnerName,
+                    projectDescription: getDescHtml()
                 })
             }).done(function (data) {
                 if (data && data.success) {
@@ -346,11 +420,30 @@
             });
         }
 
-        // "상세" 버튼 클릭 → 선택 row 데이터로 수정 팝업 오픈
+        // "상세" 버튼 클릭 → 단건 조회 후 수정 팝업 오픈
+        // (projectDescription은 HTML이라 그리드 셀에 싣지 않고 매번 단건 API로 로드.
+        //  조회 실패 시 팝업을 열지 않음 — UPDATE가 description을 무조건 SET 하므로
+        //  미로드 상태로 저장하면 기존 설명이 빈 값으로 덮어써지는 유실이 생긴다.)
         $("#projectGrid").on("click", ".btn-detail", function () {
-            var rowId   = $(this).data("id");
-            var rowData = $("#projectGrid").jqGrid("getRowData", rowId);
-            openEditPopup(rowData);
+            var $btn  = $(this);
+            var rowId = $btn.data("id");
+
+            $btn.prop("disabled", true);
+
+            $.getJSON(saveUrl + "/" + encodeURIComponent(rowId))
+                .done(function (data) {
+                    if (data && data.success) {
+                        openEditPopup(data.project);
+                    } else {
+                        alert("프로젝트 상세 조회에 실패했습니다.\n" + ((data && data.message) || ""));
+                    }
+                })
+                .fail(function (xhr, status, error) {
+                    alert("프로젝트 상세 조회 중 오류가 발생했습니다.\n" + status + " : " + error);
+                })
+                .always(function () {
+                    $btn.prop("disabled", false);
+                });
         });
 
         $("#btnCreate").on("click", openCreatePopup);

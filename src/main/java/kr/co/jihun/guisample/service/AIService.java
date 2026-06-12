@@ -5,6 +5,8 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -42,20 +44,31 @@ public class AIService
     /**
      * 질의에 대한 RAG 답변을 토큰 단위로 스트리밍한다.
      *
-     * @param query 사용자가 입력한 질문
+     * @param query      사용자가 입력한 질문
+     * @param categoryId 검색을 한정할 카테고리 ID (null/공백이면 전체 벡터 검색)
      * @return 답변 토큰 스트림 (질의가 비면 안내 메시지 1건)
      */
-    public Flux<String> getDocs(String query)
+    public Flux<String> getDocs(String query, String categoryId)
     {
         if (query == null || query.isBlank())
         {
             return Flux.just("질문을 입력해 주세요.");
         }
 
-        SearchRequest request = SearchRequest.builder()
+        SearchRequest.Builder requestBuilder = SearchRequest.builder()
                 .query(query)
-                .topK(TOP_K)
-                .build();
+                .topK(TOP_K);
+
+        if (categoryId != null && !categoryId.isBlank())
+        {
+            // metadata->>'category_id' = ? 조건으로 변환되는 메타데이터 필터
+            Filter.Expression filterExpression = new FilterExpressionBuilder()
+                    .eq("category_id", categoryId)
+                    .build();
+            requestBuilder.filterExpression(filterExpression);
+        }
+
+        SearchRequest request = requestBuilder.build();
 
         List<Document> documents = vectorStore.similaritySearch(request);
 

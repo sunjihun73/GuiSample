@@ -64,9 +64,9 @@
                         <circle cx="8" cy="7" r="0.9"/>
                         <circle cx="10.5" cy="7" r="0.9"/>
                     </svg>
-                    <span class="nav-label">RAG</span>
+                    <span class="nav-label">RAG 챗봇</span>
                 </a>
-                <span class="tooltip">RAG</span>
+                <span class="tooltip">RAG 챗봇</span>
             </li>
             <li class="nav-menu__item">
                 <a href="/user/embedding">

@@ -74,3 +74,15 @@
 - 화면: `/user/embedding` → 업로드 폼(`#embedForm`, source `#embedSource`, 파일 `#embedFile`, 버튼 `#embedBtn`, 결과 `#embedResult`).
 - API: `POST /user/rag/embedding` multipart(`file`,`source`) → `{success, source, chunkCount, message}`.
 - 성공 시 결과 영역에 `"<source> · <chunkCount>개 청크 저장 완료"`(녹색), 실패 시 `message`(빨강) 표시.
+
+## 2026-06-12 카테고리 패널 추가 (rag.jsp)
+
+- 레이아웃: page-header 아래를 `.rag-body`(flex)로 감싸 좌측 `.rag-cat-panel`(flex 0 0 20%) + 우측 기존 `.chat-window`(flex 1) 2단 구성.
+- 카테고리 목록: `GET /user/category/categories?page=1&rows=1000` → `rows[].categoryId/categoryName`만 사용.
+  - 그리드 미사용 — `.rag-cat-btn` 버튼 세로 목록(`.rag-cat-list`, flex-column).
+  - `categoryName`은 `textContent` 삽입(XSS 방지), `categoryId`는 `data-category-id`에 보관.
+- 선택: 단일 선택, `is-selected` 클래스 + `aria-pressed` 토글. 최상단 "전체" 버튼(data-category-id="")이 기본 선택.
+- 전송: `streamAnswer`가 전송 시점에 `#ragCatList .rag-cat-btn.is-selected`의 `data-category-id`를 읽어
+  값이 있으면 body에 `categoryId` 포함, "전체"면 필드 생략 → `POST /user/rag/docs {query[, categoryId]}`.
+- 로딩 실패 시 `#ragCatMsg`(`.rag-cat-msg.is-error`)에 오류 표시, 채팅("전체" 검색)은 계속 동작.
+- common.css 추가 클래스: `.rag-body`, `.rag-cat-panel(__title)`, `.rag-cat-list`, `.rag-cat-btn(.is-selected)`, `.rag-cat-msg(.is-error)`.

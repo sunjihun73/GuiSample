@@ -51,6 +51,32 @@ public class ProjectMasterRestController
         return result;
     }
 
+    @GetMapping("/projects/{projectId}")
+    public Map<String, Object> projectDetail(@PathVariable String projectId)
+    {
+        Map<String, Object> result = new HashMap<>();
+        try
+        {
+            ProjectMasterDTO project = projectMasterService.selectProjectMaster(projectId);
+            if (project == null)
+            {
+                result.put("success", false);
+                result.put("message", "프로젝트를 찾을 수 없습니다.");
+            }
+            else
+            {
+                result.put("success", true);
+                result.put("project", project);
+            }
+        }
+        catch (Exception e)
+        {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+
     @PostMapping("/projects")
     public Map<String, Object> saveProject(@RequestBody ProjectMasterDTO projectMaster)
     {

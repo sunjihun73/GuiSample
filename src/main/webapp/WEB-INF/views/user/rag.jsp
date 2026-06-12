@@ -63,9 +63,9 @@
                         <circle cx="8" cy="7" r="0.9"/>
                         <circle cx="10.5" cy="7" r="0.9"/>
                     </svg>
-                    <span class="nav-label">RAG</span>
+                    <span class="nav-label">RAG 챗봇</span>
                 </a>
-                <span class="tooltip">RAG</span>
+                <span class="tooltip">RAG 챗봇</span>
             </li>
             <li class="nav-menu__item">
                 <a href="/user/embedding">
@@ -87,11 +87,24 @@
     <main class="main-content rag-chat">
 
         <header class="page-header">
-            <h1 class="page-header__title">RAG</h1>
+            <h1 class="page-header__title">RAG 챗봇</h1>
         </header>
 
-        <!-- 채팅 UI -->
-        <div class="chat-window">
+        <!-- 본문: 좌측 카테고리 패널 + 우측 채팅 UI -->
+        <div class="rag-body">
+
+            <!-- 카테고리 선택 패널 (좌측 약 1/5) -->
+            <aside class="rag-cat-panel" aria-label="카테고리 선택">
+                <p class="rag-cat-panel__title">카테고리</p>
+                <div id="ragCatList" class="rag-cat-list" role="group" aria-label="카테고리 목록">
+                    <button type="button" class="rag-cat-btn is-selected"
+                            data-category-id="" aria-pressed="true">전체</button>
+                </div>
+                <p id="ragCatMsg" class="rag-cat-msg"></p>
+            </aside>
+
+            <!-- 채팅 UI -->
+            <div class="chat-window">
             <!-- 메시지 표시 영역 (위쪽) -->
             <div id="chatMessages" class="chat-messages" aria-live="polite">
                 <div class="chat-msg chat-msg--bot">
@@ -105,6 +118,8 @@
                           placeholder="메시지를 입력하세요  (Enter 전송 · Shift+Enter 줄바꿈)"></textarea>
                 <button type="submit" id="chatSendBtn" class="chat-send-btn">전송</button>
             </form>
+            </div>
+
         </div>
 
     </main>
@@ -125,6 +140,62 @@
             var isCollapsed = sidebar.classList.toggle('collapsed');
             sessionStorage.setItem(STORAGE_KEY, isCollapsed);
         });
+    })();
+
+    /* ── 카테고리 목록 로딩 + 단일 선택 ───────────────────── */
+    (function () {
+        /* 백엔드 응답: GET /user/category/categories?page=1&rows=1000
+           →  200  { page, total, records, rows: [{ categoryId, categoryName, … }] } */
+        var CATEGORIES_URL = '${pageContext.request.contextPath}/user/category/categories?page=1&rows=1000';
+
+        var listEl = document.getElementById('ragCatList');
+        var msgEl  = document.getElementById('ragCatMsg');
+
+        /* 클릭한 버튼만 선택 표시 (단일 선택) */
+        listEl.addEventListener('click', function (e) {
+            var btn = e.target.closest('.rag-cat-btn');
+            if (!btn) return;
+
+            listEl.querySelectorAll('.rag-cat-btn').forEach(function (b) {
+                b.classList.remove('is-selected');
+                b.setAttribute('aria-pressed', 'false');
+            });
+            btn.classList.add('is-selected');
+            btn.setAttribute('aria-pressed', 'true');
+        });
+
+        /* 카테고리 목록 로딩 — 실패해도 "전체" 검색은 계속 동작 */
+        (async function loadCategories() {
+            try {
+                var res = await fetch(CATEGORIES_URL, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+
+                var data = await res.json();
+                var rows = data && Array.isArray(data.rows) ? data.rows : [];
+
+                rows.forEach(function (cat) {
+                    if (!cat || !cat.categoryId) return;
+
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'rag-cat-btn';
+                    btn.dataset.categoryId = cat.categoryId;
+                    btn.setAttribute('aria-pressed', 'false');
+                    btn.textContent = cat.categoryName || '(이름 없음)';   /* XSS 방지 */
+                    btn.title = cat.categoryName || '';
+                    listEl.appendChild(btn);
+                });
+
+                if (!rows.length) {
+                    msgEl.textContent = '등록된 카테고리가 없습니다.';
+                }
+            } catch (e) {
+                msgEl.textContent = '카테고리 목록을 불러오지 못했습니다. (' + e.message + ')';
+                msgEl.classList.add('is-error');
+            }
+        })();
     })();
 
     /* ── RAG 답변 스트리밍 ────────────────────────────────── */
@@ -189,18 +260,30 @@
             inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
         }
 
+        /* 좌측 패널에서 선택된 카테고리 ID 반환 ("전체"면 빈 문자열) */
+        function getSelectedCategoryId() {
+            var sel = document.querySelector('#ragCatList .rag-cat-btn.is-selected');
+            return sel ? sel.dataset.categoryId : '';
+        }
+
         /* /user/rag/docs 답변 스트림 소비.
            fetch ReadableStream을 직접 읽어 SSE(data: 라인)를 파싱하고
            토큰마다 onToken(text)을 호출한다. (EventSource는 GET만 지원하므로 미사용)
            Spring SSE는 'data:' 뒤에 공백을 추가하지 않으므로 slice(5)로 원문을 보존한다. */
         async function streamAnswer(query, onToken) {
+            /* 카테고리 선택 시 categoryId를 함께 전송 — 서버가 metadata 필터로 사용.
+               "전체"(빈 값)면 필드를 생략하여 전체 벡터 검색. */
+            var payload = { query: query };
+            var categoryId = getSelectedCategoryId();
+            if (categoryId) payload.categoryId = categoryId;
+
             var res = await fetch(DOCS_URL, {
                 method:  'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept':       'text/event-stream'
                 },
-                body: JSON.stringify({ query: query })
+                body: JSON.stringify(payload)
             });
             if (!res.ok)   throw new Error('HTTP ' + res.status);
             if (!res.body) throw new Error('스트림을 지원하지 않는 브라우저입니다.');
