@@ -1,7 +1,7 @@
 package kr.co.jihun.guisample.controller.user;
 
 import kr.co.jihun.guisample.service.CategoryMasterService;
-import kr.co.jihun.guisample.vo.CategoryMasterVO;
+import kr.co.jihun.guisample.dto.CategoryMasterDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,7 +34,7 @@ public class CategoryMasterRestController
         param.put("startRow", (page - 1) * rows);
         param.put("pageSize", rows);
 
-        List<CategoryMasterVO> list = categoryMasterService.selectCategoryMasterList(param);
+        List<CategoryMasterDTO> list = categoryMasterService.selectCategoryMasterList(param);
 
         Map<String, Object> result = new HashMap<>();
         result.put("page",    page);
@@ -45,12 +45,12 @@ public class CategoryMasterRestController
     }
 
     @PostMapping("/categories")
-    public Map<String, Object> saveCategory(@RequestBody CategoryMasterVO categoryMaster)
+    public Map<String, Object> saveCategory(@RequestBody CategoryMasterDTO categoryMaster)
     {
         Map<String, Object> result = new HashMap<>();
         try
         {
-            CategoryMasterVO saved = categoryMasterService.createCategoryMaster(categoryMaster);
+            CategoryMasterDTO saved = categoryMasterService.createCategoryMaster(categoryMaster);
             result.put("success",    true);
             result.put("categoryId", saved.getCategoryId());
         }

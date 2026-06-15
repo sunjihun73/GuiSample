@@ -317,7 +317,8 @@
         function openEditPopup(project) {
             popupMode = "edit";
             $("#projectPopupTitle").text("프로젝트 수정");
-            $("#popupProjectIdField").show();
+            // projectId 항목은 화면에 노출하지 않고(숨김 유지), 값만 채워 수정 시 PATCH URL 식별자로 사용한다.
+            $("#popupProjectIdField").hide();
             $("#popupProjectId").val(project.projectId);
             $("#popupProjectName").val(project.projectName);
             $("#popupProjectOwnerName").val(project.projectOwnerName);

@@ -1,7 +1,7 @@
 package kr.co.jihun.guisample.service;
 
 import kr.co.jihun.guisample.mapper.ProjectMasterMapper;
-import kr.co.jihun.guisample.vo.ProjectMasterDTO;
+import kr.co.jihun.guisample.dto.ProjectMasterDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

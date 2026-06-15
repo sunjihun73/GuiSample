@@ -1,8 +1,8 @@
 package kr.co.jihun.guisample.controller.user;
 
 import kr.co.jihun.guisample.service.KnowledgeFileService;
-import kr.co.jihun.guisample.vo.KnowledgeChunkVO;
-import kr.co.jihun.guisample.vo.KnowledgeFileVO;
+import kr.co.jihun.guisample.dto.KnowledgeChunkDTO;
+import kr.co.jihun.guisample.dto.KnowledgeFileDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,7 +51,7 @@ public class KnowledgeRestController
         param.put("startRow", (page - 1) * rows);
         param.put("pageSize", rows);
 
-        List<KnowledgeFileVO> list = knowledgeFileService.selectKnowledgeFileList(param);
+        List<KnowledgeFileDTO> list = knowledgeFileService.selectKnowledgeFileList(param);
 
         Map<String, Object> result = new HashMap<>();
         result.put("page",    page);
@@ -69,7 +69,7 @@ public class KnowledgeRestController
      * @return 청크 목록 (chunk_index ASC)
      */
     @GetMapping("/knowledges/chunks/{parentDocumentId}")
-    public List<KnowledgeChunkVO> knowledgeChunkList(@PathVariable("parentDocumentId") String parentDocumentId)
+    public List<KnowledgeChunkDTO> knowledgeChunkList(@PathVariable("parentDocumentId") String parentDocumentId)
     {
         return knowledgeFileService.selectKnowledgeChunkList(parentDocumentId);
     }

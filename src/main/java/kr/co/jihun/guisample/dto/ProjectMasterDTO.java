@@ -1,4 +1,4 @@
-package kr.co.jihun.guisample.vo;
+package kr.co.jihun.guisample.dto;
 
 import lombok.Getter;
 import lombok.Setter;

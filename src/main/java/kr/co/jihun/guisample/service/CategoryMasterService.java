@@ -1,7 +1,7 @@
 package kr.co.jihun.guisample.service;
 
 import kr.co.jihun.guisample.mapper.CategoryMasterMapper;
-import kr.co.jihun.guisample.vo.CategoryMasterVO;
+import kr.co.jihun.guisample.dto.CategoryMasterDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +17,7 @@ public class CategoryMasterService
 
     private final CategoryMasterMapper categoryMasterMapper;
 
-    public List<CategoryMasterVO> selectCategoryMasterList(HashMap<String, Object> param)
+    public List<CategoryMasterDTO> selectCategoryMasterList(HashMap<String, Object> param)
     {
         return categoryMasterMapper.selectCategoryMasterList(param);
     }
@@ -27,7 +27,7 @@ public class CategoryMasterService
         return categoryMasterMapper.countCategoryMaster(param);
     }
 
-    public CategoryMasterVO createCategoryMaster(CategoryMasterVO categoryMaster)
+    public CategoryMasterDTO createCategoryMaster(CategoryMasterDTO categoryMaster)
     {
         // category_id 는 GUID 로 서비스에서 생성
         categoryMaster.setCategoryId(UUID.randomUUID().toString());

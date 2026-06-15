@@ -1,7 +1,7 @@
 package kr.co.jihun.guisample.controller.user;
 
 import kr.co.jihun.guisample.service.ProjectMasterService;
-import kr.co.jihun.guisample.vo.ProjectMasterDTO;
+import kr.co.jihun.guisample.dto.ProjectMasterDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;

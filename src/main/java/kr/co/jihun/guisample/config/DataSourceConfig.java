@@ -41,7 +41,7 @@ public class DataSourceConfig
         SqlSessionFactoryBean factory = new SqlSessionFactoryBean();
         factory.setDataSource(dataSource);
         factory.setMapperLocations(applicationContext.getResources("classpath:mapper/**/*.xml"));
-        factory.setTypeAliasesPackage("kr.co.jihun.guisample.vo");
+        factory.setTypeAliasesPackage("kr.co.jihun.guisample.dto");
 
         org.apache.ibatis.session.Configuration mybatisConfig = new org.apache.ibatis.session.Configuration();
         mybatisConfig.setMapUnderscoreToCamelCase(true);

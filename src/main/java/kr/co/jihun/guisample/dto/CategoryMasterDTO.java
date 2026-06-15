@@ -1,4 +1,4 @@
-package kr.co.jihun.guisample.vo;
+package kr.co.jihun.guisample.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -7,7 +7,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class CategoryMasterVO
+public class CategoryMasterDTO
 {
   private String categoryId;
   private String categoryName;

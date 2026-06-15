@@ -2,8 +2,8 @@ package kr.co.jihun.guisample.service;
 
 import kr.co.jihun.guisample.dto.EmbeddingResponse;
 import kr.co.jihun.guisample.mapper.KnowledgeFileMapper;
-import kr.co.jihun.guisample.vo.KnowledgeChunkVO;
-import kr.co.jihun.guisample.vo.KnowledgeFileVO;
+import kr.co.jihun.guisample.dto.KnowledgeChunkDTO;
+import kr.co.jihun.guisample.dto.KnowledgeFileDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,7 +40,7 @@ public class KnowledgeFileService
 
     /* ── 목록 조회 ───────────────────────────────────────── */
 
-    public List<KnowledgeFileVO> selectKnowledgeFileList(HashMap<String, Object> param)
+    public List<KnowledgeFileDTO> selectKnowledgeFileList(HashMap<String, Object> param)
     {
         return knowledgeFileMapper.selectKnowledgeFileList(param);
     }
@@ -55,7 +55,7 @@ public class KnowledgeFileService
      *
      * @param parentDocumentId 선택된 지식파일 ID (vector_store 청크 metadata.parent_document_id)
      */
-    public List<KnowledgeChunkVO> selectKnowledgeChunkList(String parentDocumentId)
+    public List<KnowledgeChunkDTO> selectKnowledgeChunkList(String parentDocumentId)
     {
         HashMap<String, Object> param = new HashMap<>();
         param.put("parentDocumentId", parentDocumentId);
@@ -123,7 +123,7 @@ public class KnowledgeFileService
             saveToDisk(bytes, fileId, originalName);
 
             // 5) knowledge_files 메타 정보 insert
-            KnowledgeFileVO vo = new KnowledgeFileVO();
+            KnowledgeFileDTO vo = new KnowledgeFileDTO();
             vo.setFileId(fileId);
             vo.setCategoryId(categoryId);
             vo.setFileName(originalName);

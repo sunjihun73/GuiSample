@@ -1,6 +1,6 @@
 package kr.co.jihun.guisample.mapper;
 
-import kr.co.jihun.guisample.vo.ProjectMasterDTO;
+import kr.co.jihun.guisample.dto.ProjectMasterDTO;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.HashMap;

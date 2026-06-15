@@ -1,11 +1,11 @@
-package kr.co.jihun.guisample.vo;
+package kr.co.jihun.guisample.dto;
 
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
 /**
- * vector_store 청크 조회용 VO.
+ * vector_store 청크 조회용 DTO.
  * 특정 지식파일(parent_document_id = knowledge_files.file_id)에 속한 청크 1건을 담는다.
  * 물리 컬럼은 id/content 뿐이며, chunkIndex/totalChunks/categoryId/parentDocumentId 는
  * metadata(json) 에서 추출한다.
@@ -13,7 +13,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class KnowledgeChunkVO
+public class KnowledgeChunkDTO
 {
     /** 청크 자신의 id (vector_store.id, UUID). */
     private String chunkId;

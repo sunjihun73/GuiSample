@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="kr.co.jihun.guisample.mapper.ProjectMasterMapper">
 
-    <resultMap id="projectMasterResultMap" type="kr.co.jihun.guisample.vo.ProjectMasterDTO">
+    <resultMap id="projectMasterResultMap" type="kr.co.jihun.guisample.dto.ProjectMasterDTO">
         <id     property="projectId"         column="project_id"/>
         <result property="projectName"       column="project_name"/>
         <result property="projectOwnerName"  column="project_owner_name"/>
@@ -74,7 +74,7 @@
         <include refid="projectMasterWhere"/>
     </select>
 
-    <insert id="insertProjectMaster" parameterType="kr.co.jihun.guisample.vo.ProjectMasterDTO">
+    <insert id="insertProjectMaster" parameterType="kr.co.jihun.guisample.dto.ProjectMasterDTO">
         INSERT INTO project_master (
             project_id,
             project_name,
@@ -96,7 +96,7 @@
         )
     </insert>
 
-    <update id="updateProjectMaster" parameterType="kr.co.jihun.guisample.vo.ProjectMasterDTO">
+    <update id="updateProjectMaster" parameterType="kr.co.jihun.guisample.dto.ProjectMasterDTO">
         UPDATE project_master
         SET
             project_name        = #{projectName},
