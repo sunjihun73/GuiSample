@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Embedding — 업무관리 시스템</title>
+    <title>Embedding — 기술테스트 시스템</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/common.css">
 
     <!-- jQuery UI (jqGrid 테마) -->
@@ -16,7 +16,7 @@
 
 <!-- ── Top Bar ── -->
 <header class="topbar">
-    <a href="/" class="topbar__brand">업무관리 시스템</a>
+    <a href="/" class="topbar__brand">기술테스트 시스템</a>
 </header>
 
 <div class="app-shell">
@@ -183,6 +183,33 @@
     </div>
 </div>
 
+<!-- ── 청크 목록(상세) 레이어 팝업 ── -->
+<div class="layer-popup" id="chunkPopup" aria-hidden="true">
+    <div class="layer-popup__dim" id="chunkPopupDim"></div>
+    <div class="layer-popup__panel layer-popup__panel--wide" role="dialog" aria-modal="true" aria-labelledby="chunkPopupTitle">
+        <div class="layer-popup__header">
+            <h2 class="layer-popup__title" id="chunkPopupTitle">청크 목록</h2>
+        </div>
+        <div class="layer-popup__body">
+            <div class="chunk-list-meta" id="chunkPopupMeta" role="status" aria-live="polite"></div>
+            <div class="chunk-list-wrap">
+                <table class="chunk-list">
+                    <thead>
+                        <tr>
+                            <th style="width:64px;">순번</th>
+                            <th>내용</th>
+                        </tr>
+                    </thead>
+                    <tbody id="chunkListBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="layer-popup__footer">
+            <button type="button" id="btnChunkPopupClose" class="search-form__btn search-form__btn--ghost">닫기</button>
+        </div>
+    </div>
+</div>
+
 <script>
     /* ── 사이드바 토글 (다른 페이지와 동일) ───────────────── */
     (function () {
@@ -210,6 +237,7 @@
     $(function () {
         var listUrl          = '${pageContext.request.contextPath}/user/category/categories';
         var knowledgeListUrl = '${pageContext.request.contextPath}/user/knowledge/knowledges';
+        var chunkListUrl     = '${pageContext.request.contextPath}/user/knowledge/knowledges/chunks';
         var uploadUrl        = '${pageContext.request.contextPath}/user/rag/embedding';
 
         // 왼쪽 카테고리 그리드에서 선택된 행 (지식파일 업로드 시 사용)
@@ -222,6 +250,12 @@
                 return "";
             }
             return String(cellValue).replace("T", " ").substring(0, 19);
+        }
+
+        // 지식파일 그리드 "상세" 버튼 렌더링 (rowId = fileId) — projects.jsp 와 동일 디자인
+        function detailButtonFormatter(cellValue, options) {
+            return '<button type="button" class="search-form__btn btn-detail" data-id="'
+                + options.rowId + '">상세</button>';
         }
 
         // 페이지 로딩 시 GET /user/category/categories 로 목록 자동 조회
@@ -252,6 +286,15 @@
             autowidth:    true,
             height:       "520",
             emptyrecords: "조회된 데이터가 없습니다.",
+            // 최초 로딩 시 첫 번째 행을 자동 선택 → onSelectRow 가 우측 지식파일 목록을 자동 조회
+            loadComplete: function () {
+                if (selectedCategoryId === null) {
+                    var ids = $(this).jqGrid("getDataIDs");
+                    if (ids && ids.length > 0) {
+                        $(this).jqGrid("setSelection", ids[0], true);  // 2번째 인자 true → onSelectRow 트리거
+                    }
+                }
+            },
             // 행 선택 시 categoryId/categoryName 보관 → 우측 지식파일 목록을 해당 카테고리로 조회
             onSelectRow: function (rowId) {
                 var row = $("#categoryGrid").jqGrid("getRowData", rowId);
@@ -336,15 +379,17 @@
                      → 200 JSON { success, fileId, categoryId, fileName, chunkCount, message }
            ══════════════════════════════════════════════════════════ */
 
-        // 페이지 로딩 시 GET /user/knowledge/knowledges 로 목록 자동 조회
+        // 초기에는 fetch 하지 않는다(datatype:"local"). 좌측 카테고리 첫 행 자동 선택 →
+        // reloadKnowledgeGrid 가 선택된 category_id 로 첫 조회를 수행하므로 전체 조회를 방지한다.
         $("#knowledgeGrid").jqGrid({
             url:       knowledgeListUrl,
-            datatype:  "json",
+            datatype:  "local",
             mtype:     "GET",
-            colNames:  ["카테고리명", "파일 ID", "파일명", "생성일"],
+            colNames:  ["파일 ID", "상세", "카테고리명", "파일명", "생성일"],
             colModel: [
-                { name: "categoryName", index: "categoryName", width: 160, align: "left" },
                 { name: "fileId",       index: "fileId",       width: 120, align: "center", hidden: true },
+                { name: "detail",                              width: 70,  align: "center", sortable: false, search: false, formatter: detailButtonFormatter },
+                { name: "categoryName", index: "categoryName", width: 160, align: "left" },
                 { name: "fileName",     index: "fileName",     width: 220 },
                 { name: "createDate",   index: "createDate",   width: 160, align: "center", formatter: dateTimeFormatter }
             ],
@@ -371,12 +416,16 @@
         });
 
         function reloadKnowledgeGrid() {
-            // 선택된 카테고리가 있으면 category_id 로 필터, 없으면 전체 조회
+            // categoryId 는 경로 변수(/knowledges/{categoryId})로 전달한다.
+            // 선택된 카테고리가 없으면 조회하지 않는다.
+            if (!selectedCategoryId) {
+                return;
+            }
             $("#knowledgeGrid").jqGrid("setGridParam", {
                 datatype: "json",
-                url:      knowledgeListUrl,
+                url:      knowledgeListUrl + "/" + encodeURIComponent(selectedCategoryId),
                 page:     1,
-                postData: { categoryId: selectedCategoryId || "" }
+                postData: {}
             }).trigger("reloadGrid");
         }
 
@@ -460,6 +509,90 @@
         $("#btnKnowledgePopupCancel").on("click", closeKnowledgePopup);
         $("#knowledgePopupDim").on("click", closeKnowledgePopup);
         $("#btnKnowledgePopupUpload").on("click", uploadKnowledgeFile);
+
+        /* ══════════════════════════════════════════════════════════
+           청크 목록(상세) 레이어 팝업
+           - 조회: GET /user/knowledge/knowledges/chunkings?parent_document_id={fileId}
+                   → 200 JSON 배열 [{ chunkId, parentDocumentId, categoryId,
+                                       chunkIndex, totalChunks, content }, ...] (chunk_index ASC)
+           - 닫기 버튼만 존재
+           ══════════════════════════════════════════════════════════ */
+        var $chunkPopup = $("#chunkPopup");
+
+        function closeChunkPopup() {
+            $chunkPopup.removeClass("is-open").attr("aria-hidden", "true");
+        }
+
+        // 청크 목록 렌더링 — content/순번 모두 textContent 로만 삽입(XSS 방지)
+        function renderChunkList(list) {
+            var tbody = document.getElementById("chunkListBody");
+            tbody.textContent = "";   // 초기화
+
+            if (!list || list.length === 0) {
+                var trEmpty = document.createElement("tr");
+                var tdEmpty = document.createElement("td");
+                tdEmpty.colSpan = 2;
+                tdEmpty.className = "chunk-list__empty";
+                tdEmpty.textContent = "조회된 청크가 없습니다.";
+                trEmpty.appendChild(tdEmpty);
+                tbody.appendChild(trEmpty);
+                return;
+            }
+
+            list.forEach(function (chunk) {
+                var tr = document.createElement("tr");
+
+                var tdIdx = document.createElement("td");
+                tdIdx.className = "chunk-list__idx";
+                tdIdx.textContent = (chunk.chunkIndex == null) ? "" : String(chunk.chunkIndex);
+
+                var tdContent = document.createElement("td");
+                tdContent.className = "chunk-list__content";
+                tdContent.textContent = (chunk.content == null) ? "" : chunk.content;
+
+                tr.appendChild(tdIdx);
+                tr.appendChild(tdContent);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openChunkPopup(fileId) {
+            if (!fileId) {
+                alert("지식파일 정보를 확인할 수 없습니다.");
+                return;
+            }
+
+            // 팝업을 먼저 열고 로딩 표시
+            document.getElementById("chunkPopupMeta").textContent = "청킹 목록을 불러오는 중...";
+            renderChunkList([]);
+            $chunkPopup.addClass("is-open").attr("aria-hidden", "false");
+
+            $.ajax({
+                // parent_document_id 는 경로 변수(/knowledges/chunks/{parent_document_id})로 전달
+                url:      chunkListUrl + "/" + encodeURIComponent(fileId),
+                type:     "GET",
+                dataType: "json"
+            }).done(function (list) {
+                var count = (list && list.length) ? list.length : 0;
+                document.getElementById("chunkPopupMeta").textContent =
+                    "총 " + count + "개 청크";
+                renderChunkList(list);
+            })
+            .fail(function (xhr, status, error) {
+                document.getElementById("chunkPopupMeta").textContent =
+                    "청킹 목록 조회 중 오류가 발생했습니다. (" + status + " : " + error + ")";
+                renderChunkList([]);
+            });
+        }
+
+        // 그리드 내 "상세" 버튼 위임 클릭 — 행 선택(onSelectRow)으로의 전파 차단
+        $("#knowledgeGrid").on("click", ".btn-detail", function (e) {
+            e.stopPropagation();
+            openChunkPopup($(this).data("id"));
+        });
+
+        $("#btnChunkPopupClose").on("click", closeChunkPopup);
+        $("#chunkPopupDim").on("click", closeChunkPopup);
     });
 </script>
 

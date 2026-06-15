@@ -1,9 +1,11 @@
 package kr.co.jihun.guisample.controller.user;
 
 import kr.co.jihun.guisample.service.KnowledgeFileService;
+import kr.co.jihun.guisample.vo.KnowledgeChunkVO;
 import kr.co.jihun.guisample.vo.KnowledgeFileVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,19 +25,19 @@ public class KnowledgeRestController
     private final KnowledgeFileService knowledgeFileService;
 
     /**
-     * 지식파일 목록 조회. 전체 경로: GET /user/knowledge/knowledges
+     * 지식파일 목록 조회. 전체 경로: GET /user/knowledge/knowledges/{categoryId}
      * jqGrid 표준 응답 shape(page/total/records/rows)으로 반환한다.
-     * categoryId 가 주어지면 해당 카테고리의 지식파일만 조회한다(왼쪽 카테고리 선택 연동).
+     * 경로의 categoryId 에 해당하는 카테고리의 지식파일만 조회한다(왼쪽 카테고리 선택 연동).
      *
+     * @param categoryId 필터링할 카테고리 ID (경로 변수)
      * @param page       1-base 페이지 번호
      * @param rows       페이지당 행 수
-     * @param categoryId (선택) 필터링할 카테고리 ID
      */
-    @GetMapping("/knowledges")
+    @GetMapping("/knowledges/{categoryId}")
     public Map<String, Object> knowledgeList(
+            @PathVariable String categoryId,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int rows,
-            @RequestParam(required = false) String categoryId)
+            @RequestParam(defaultValue = "10") int rows)
     {
         HashMap<String, Object> param = new HashMap<>();
         if (categoryId != null && !categoryId.isBlank())
@@ -57,5 +59,18 @@ public class KnowledgeRestController
         result.put("records", totalRecords);
         result.put("rows",    list);
         return result;
+    }
+
+    /**
+     * 선택한 지식파일의 청크 목록 조회. 전체 경로: GET /user/knowledge/knowledges/chunks/{parent_document_id}
+     * vector_store 에서 metadata.parent_document_id 가 일치하는 청크를 chunk_index 오름차순으로 반환한다.
+     *
+     * @param parentDocumentId 선택된 지식파일 ID (knowledge_files.file_id, 경로 변수)
+     * @return 청크 목록 (chunk_index ASC)
+     */
+    @GetMapping("/knowledges/chunks/{parentDocumentId}")
+    public List<KnowledgeChunkVO> knowledgeChunkList(@PathVariable("parentDocumentId") String parentDocumentId)
+    {
+        return knowledgeFileService.selectKnowledgeChunkList(parentDocumentId);
     }
 }

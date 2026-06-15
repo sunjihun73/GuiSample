@@ -4,56 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>프로젝트목록 — 업무관리 시스템</title>
+    <title>프로젝트목록 — 기술테스트 시스템</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/common.css">
 
     <!-- jQuery UI (jqGrid 테마) -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.min.css">
     <!-- free-jqGrid CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/css/ui.jqgrid.min.css">
-    <style>
-        /* 리치 에디터(TinyMCE)가 들어가므로 이 팝업만 기본 480px 보다 넓힘 */
-        #projectPopup .layer-popup__panel { width: 800px; }
-        #projectPopup .layer-popup__body {
-            padding-left: var(--sp-lg);
-            padding-right: var(--sp-lg);
-        }
-
-        /* TinyMCE placeholder textarea — 에디터 초기화 전 임시 표시 */
-        #popupProjectDescription {
-            width: 100%;
-            height: 220px;
-            box-sizing: border-box;
-        }
-
-        /* 그리드 셀 padding 축소 → row 높이 감소 */
-        #projectGrid.ui-jqgrid-btable td {
-            padding-top: 2px;
-            padding-bottom: 2px;
-        }
-
-        /* 수정 불가 projectId 필드: 회색 배경 + 편집 불가 표시 */
-        #popupProjectId[readonly] {
-            background: var(--divider-soft, #f0f0f0);
-            color: #888;
-            cursor: not-allowed;
-        }
-
-        /* "상세" 버튼 컴팩트 스타일 (기본 .search-form__btn 의 height:44px 를 덮어씀) */
-        .btn-detail {
-            height: 22px;
-            padding: 0 8px;
-            font-size: 12px;
-            line-height: 1;
-            border-radius: 4px;
-        }
-    </style>
 </head>
 <body>
 
 <!-- ── Top Bar ── -->
 <header class="topbar">
-    <a href="/" class="topbar__brand">업무관리 시스템</a>
+    <a href="/" class="topbar__brand">기술테스트 시스템</a>
 </header>
 
 <div class="app-shell">

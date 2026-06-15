@@ -91,3 +91,7 @@ spring:
   - PgVectorStore가 `metadata->>'category_id' = ?` JSONB 조건으로 변환.
 - 응답 shape(text/event-stream 토큰 스트림)은 변경 없음.
 - `./gradlew compileJava` 통과 확인 (Spring AI 2.0.0-M4).
+
+## 후속 추가 (2026-06-15) — 청크 목록 조회 API
+- `KnowledgeRestController`: GET `/user/knowledge/knowledges/chunkings`, param `parent_document_id`, 반환 `List<KnowledgeChunkVO>`(JSON 배열, chunk_index ASC)
+- `KnowledgeFileService.selectKnowledgeChunkList(String parentDocumentId)`

@@ -2,6 +2,7 @@ package kr.co.jihun.guisample.service;
 
 import kr.co.jihun.guisample.dto.EmbeddingResponse;
 import kr.co.jihun.guisample.mapper.KnowledgeFileMapper;
+import kr.co.jihun.guisample.vo.KnowledgeChunkVO;
 import kr.co.jihun.guisample.vo.KnowledgeFileVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,18 @@ public class KnowledgeFileService
     public int countKnowledgeFile(HashMap<String, Object> param)
     {
         return knowledgeFileMapper.countKnowledgeFile(param);
+    }
+
+    /**
+     * 특정 지식파일(parent_document_id = file_id)의 청크 목록을 chunk_index 오름차순으로 조회한다.
+     *
+     * @param parentDocumentId 선택된 지식파일 ID (vector_store 청크 metadata.parent_document_id)
+     */
+    public List<KnowledgeChunkVO> selectKnowledgeChunkList(String parentDocumentId)
+    {
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("parentDocumentId", parentDocumentId);
+        return knowledgeFileMapper.selectKnowledgeChunkList(param);
     }
 
     /* ── 업로드 ─────────────────────────────────────────── */

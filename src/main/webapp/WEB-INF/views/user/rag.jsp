@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAG — 업무관리 시스템</title>
+    <title>RAG — 기술테스트 시스템</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/common.css">
 </head>
 <body>
 
 <!-- ── Top Bar ── -->
 <header class="topbar">
-    <a href="/" class="topbar__brand">업무관리 시스템</a>
+    <a href="/" class="topbar__brand">기술테스트 시스템</a>
 </header>
 
 <div class="app-shell">

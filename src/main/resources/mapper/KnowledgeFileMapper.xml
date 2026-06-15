@@ -60,6 +60,34 @@
         <include refid="knowledgeFileWhere"/>
     </select>
 
+    <!-- vector_store 청크 조회용 ResultMap. metadata(json) 에서 ->> 로 추출한 별칭 컬럼을 매핑. -->
+    <resultMap id="knowledgeChunkResultMap" type="kr.co.jihun.guisample.vo.KnowledgeChunkVO">
+        <id     property="chunkId"          column="chunk_id"/>
+        <result property="parentDocumentId" column="parent_document_id"/>
+        <result property="categoryId"       column="category_id"/>
+        <result property="chunkIndex"       column="chunk_index"/>
+        <result property="totalChunks"      column="total_chunks"/>
+        <result property="content"          column="content"/>
+    </resultMap>
+
+    <select id="selectKnowledgeChunkList"
+            parameterType="hashmap"
+            resultMap="knowledgeChunkResultMap">
+        SELECT
+            vs.id                                       AS chunk_id,
+            vs.metadata ->> 'parent_document_id'        AS parent_document_id,
+            vs.metadata ->> 'category_id'               AS category_id,
+            (vs.metadata ->> 'chunk_index')::int        AS chunk_index,
+            (vs.metadata ->> 'total_chunks')::int       AS total_chunks,
+            vs.content
+        FROM
+            vector_store vs
+        WHERE
+            vs.metadata ->> 'parent_document_id' = #{parentDocumentId}
+        ORDER BY
+            (vs.metadata ->> 'chunk_index')::int ASC
+    </select>
+
     <insert id="insertKnowledgeFile"
             parameterType="kr.co.jihun.guisample.vo.KnowledgeFileVO">
         INSERT INTO knowledge_files (

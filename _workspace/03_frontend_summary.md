@@ -86,3 +86,9 @@
   값이 있으면 body에 `categoryId` 포함, "전체"면 필드 생략 → `POST /user/rag/docs {query[, categoryId]}`.
 - 로딩 실패 시 `#ragCatMsg`(`.rag-cat-msg.is-error`)에 오류 표시, 채팅("전체" 검색)은 계속 동작.
 - common.css 추가 클래스: `.rag-body`, `.rag-cat-panel(__title)`, `.rag-cat-list`, `.rag-cat-btn(.is-selected)`, `.rag-cat-msg(.is-error)`.
+
+## 후속 추가 (2026-06-15) — 지식파일 상세(청크 목록) 팝업
+- `embedding.jsp` 지식파일 그리드에 "상세" 컬럼(버튼) 추가 → `.grid-detail-btn` 위임 클릭(stopPropagation)
+- 청크 팝업 `#chunkPopup`(닫기 버튼만), GET chunkings 호출 후 textContent 로 렌더(XSS 방지)
+- 응답 파싱: chunk.chunkIndex / chunk.content
+- `common.css`: `.layer-popup__panel--wide`, `.grid-detail-btn`, `.chunk-list*` 추가

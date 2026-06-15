@@ -31,3 +31,9 @@
 ## mybatis 설정
 - mapper-locations: `classpath:mapper/**/*.xml` (DataSourceConfig) → 신규 XML 자동 등록
 - mapUnderscoreToCamelCase=true (그러나 명시 resultMap 사용)
+
+## 후속 추가 (2026-06-15) — 청크 목록 조회
+- VO 신규: `vo/KnowledgeChunkVO.java` (chunkId/parentDocumentId/categoryId/chunkIndex/totalChunks/content)
+- Mapper: `selectKnowledgeChunkList(HashMap)` 추가 + `knowledgeChunkResultMap`
+- SQL: `vector_store` 에서 `metadata ->> 'parent_document_id' = #{parentDocumentId}`, `ORDER BY (metadata ->> 'chunk_index')::int ASC`
+- metadata(json) 키 = category_id / chunk_index / total_chunks / parent_document_id (실 DB 확인)
