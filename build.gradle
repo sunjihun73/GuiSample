@@ -46,6 +46,9 @@ dependencies {
     // Spring AI
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
     implementation 'org.springframework.ai:spring-ai-starter-vector-store-pgvector'
+
+    // Playwright
+    implementation("com.microsoft.playwright:playwright:1.60.0")
 }
 
 
