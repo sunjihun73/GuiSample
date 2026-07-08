@@ -71,6 +71,7 @@ public class AIRestController
         // 페이징 사용 시 startRow/pageSize 를 반드시 함께 세팅 (mapper LIMIT/OFFSET 가드 대응)
         param.put("startRow", (page - 1) * rows);
         param.put("pageSize", rows);
+        param.put("chatOwnerUserId", "sunjeehun");
 
         List<ChatMasterDTO> list = chatService.selectSessions(param);
         List<SessionRow> sessionRows = list.stream()
