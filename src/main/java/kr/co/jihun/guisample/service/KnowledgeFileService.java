@@ -6,6 +6,7 @@ import kr.co.jihun.guisample.dto.KnowledgeChunkDTO;
 import kr.co.jihun.guisample.dto.KnowledgeFileDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,8 +33,9 @@ public class KnowledgeFileService
 {
     private static final String DEFAULT_USER_ID = "sunjeehun";
 
-    /** 업로드 파일 저장 루트 (요구사항 7.9). */
-    private static final String UPLOAD_DIR = "/home/sunjihun/mydev/upload_files/knowledge_files";
+    /** 업로드 파일 저장 루트 (요구사항 7.9). .env 의 UPLOAD_FILE_PATH 값을 주입받는다. */
+    @Value("${UPLOAD_FILE_PATH}")
+    private String uploadDir;
 
     private final KnowledgeFileMapper knowledgeFileMapper;
     private final EmbeddingService embeddingService;
@@ -147,7 +149,7 @@ public class KnowledgeFileService
     /** 업로드 디렉터리를 보장하고 원본 바이트를 저장한다. 저장 파일명: {fileId}_{원본파일명} */
     private void saveToDisk(byte[] bytes, String fileId, String originalName) throws IOException
     {
-        Path dir = Paths.get(UPLOAD_DIR);
+        Path dir = Paths.get(uploadDir);
         Files.createDirectories(dir);
         Path target = dir.resolve(fileId + "_" + originalName);
         Files.write(target, bytes);

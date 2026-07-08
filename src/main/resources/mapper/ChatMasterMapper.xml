@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.jihun.guisample.mapper.ChatMasterMapper">
+
+    <resultMap id="chatMasterResultMap" type="kr.co.jihun.guisample.dto.ChatMasterDTO">
+        <id     property="chatSessionId"    column="chat_session_id"/>
+        <result property="chatTitleName"    column="chat_title_name"/>
+        <result property="chatOwnerUserId"  column="chat_owner_user_id"/>
+        <result property="updateUserId"     column="update_user_id"/>
+        <result property="updateDate"       column="update_date"/>
+        <result property="createUserId"     column="create_user_id"/>
+        <result property="createDate"       column="create_date"/>
+    </resultMap>
+
+    <sql id="chatMasterColumns">
+        chat_session_id,
+        chat_title_name,
+        chat_owner_user_id,
+        update_user_id,
+        update_date,
+        create_user_id,
+        create_date
+    </sql>
+
+    <sql id="chatMasterWhere">
+        <where>
+            <if test="chatSessionId != null and chatSessionId != ''">
+                AND chat_session_id = #{chatSessionId}
+            </if>
+            <if test="chatOwnerUserId != null and chatOwnerUserId != ''">
+                AND chat_owner_user_id = #{chatOwnerUserId}
+            </if>
+            <if test="chatTitleName != null and chatTitleName != ''">
+                AND chat_title_name LIKE CONCAT('%', #{chatTitleName}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectChatMasterList"
+            parameterType="hashmap"
+            resultMap="chatMasterResultMap">
+        SELECT
+            <include refid="chatMasterColumns"/>
+        FROM
+            chat_master
+        <include refid="chatMasterWhere"/>
+        ORDER BY create_date DESC
+        <if test="pageSize != null">
+            LIMIT #{pageSize} OFFSET #{startRow}
+        </if>
+    </select>
+
+    <select id="countChatMaster"
+            parameterType="hashmap"
+            resultType="int">
+        SELECT
+            COUNT(*)
+        FROM
+            chat_master
+        <include refid="chatMasterWhere"/>
+    </select>
+
+    <select id="selectChatMaster"
+            resultMap="chatMasterResultMap">
+        SELECT
+            <include refid="chatMasterColumns"/>
+        FROM
+            chat_master
+        WHERE
+            chat_session_id = #{sessionId}
+    </select>
+
+    <update id="updateChatMasterTitle">
+        UPDATE chat_master
+        SET
+            chat_title_name = #{title},
+            update_user_id  = #{updateUserId},
+            update_date     = NOW()
+        WHERE
+            chat_session_id = #{sessionId}
+    </update>
+
+    <insert id="insertChatMaster" parameterType="kr.co.jihun.guisample.dto.ChatMasterDTO">
+        INSERT INTO chat_master (
+            chat_session_id,
+            chat_title_name,
+            chat_owner_user_id,
+            create_user_id,
+            create_date,
+            update_user_id,
+            update_date
+        ) VALUES (
+            #{chatSessionId},
+            #{chatTitleName},
+            #{chatOwnerUserId},
+            #{createUserId},
+            NOW(),
+            #{updateUserId},
+            NOW()
+        )
+    </insert>
+
+</mapper>

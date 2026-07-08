@@ -34,6 +34,7 @@ spring:
         options:
 #          model: gpt-5-mini
           model: gpt-4o-mini
+          stream-usage: true
       embedding:
         options:
           model: text-embedding-3-small
