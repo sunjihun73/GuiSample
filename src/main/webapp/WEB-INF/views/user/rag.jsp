@@ -135,83 +135,76 @@
     </main>
 </div>
 
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
 <script>
     /* ── 사이드바 토글 (다른 페이지와 동일) ───────────────── */
-    (function () {
-        var sidebar   = document.getElementById('sidebar');
-        var toggleBtn = document.getElementById('toggleBtn');
+    $(function () {
+        var $sidebar = $('#sidebar');
         var STORAGE_KEY = 'sidebar_collapsed';
 
         if (sessionStorage.getItem(STORAGE_KEY) === 'true') {
-            sidebar.classList.add('collapsed');
+            $sidebar.addClass('collapsed');
         }
 
-        toggleBtn.addEventListener('click', function () {
-            var isCollapsed = sidebar.classList.toggle('collapsed');
+        $('#toggleBtn').on('click', function () {
+            var isCollapsed = $sidebar.toggleClass('collapsed').hasClass('collapsed');
             sessionStorage.setItem(STORAGE_KEY, isCollapsed);
         });
-    })();
+    });
 
     /* ── 카테고리 목록 로딩 + 단일 선택 ───────────────────── */
-    (function () {
+    $(function () {
         /* 백엔드 응답: GET /user/category/categories?page=1&rows=1000
            →  200  { page, total, records, rows: [{ categoryId, categoryName, … }] } */
         var CATEGORIES_URL = '${pageContext.request.contextPath}/user/category/categories?page=1&rows=1000';
 
-        var listEl = document.getElementById('ragCatList');
-        var msgEl  = document.getElementById('ragCatMsg');
+        var $list = $('#ragCatList');
+        var $msg  = $('#ragCatMsg');
 
         /* 클릭한 버튼만 선택 표시 (단일 선택) */
-        listEl.addEventListener('click', function (e) {
-            var btn = e.target.closest('.rag-cat-btn');
-            if (!btn) return;
-
-            listEl.querySelectorAll('.rag-cat-btn').forEach(function (b) {
-                b.classList.remove('is-selected');
-                b.setAttribute('aria-pressed', 'false');
-            });
-            btn.classList.add('is-selected');
-            btn.setAttribute('aria-pressed', 'true');
+        $list.on('click', '.rag-cat-btn', function () {
+            $list.find('.rag-cat-btn').removeClass('is-selected').attr('aria-pressed', 'false');
+            $(this).addClass('is-selected').attr('aria-pressed', 'true');
         });
 
         /* 카테고리 목록 로딩 — 실패해도 "전체" 검색은 계속 동작 */
-        (async function loadCategories() {
-            try {
-                var res = await fetch(CATEGORIES_URL, {
-                    headers: { 'Accept': 'application/json' }
-                });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
+        $.ajax({
+            url:      CATEGORIES_URL,
+            type:     'GET',
+            dataType: 'json',
+            headers:  { 'Accept': 'application/json' }
+        }).done(function (data) {
+            var rows = data && Array.isArray(data.rows) ? data.rows : [];
 
-                var data = await res.json();
-                var rows = data && Array.isArray(data.rows) ? data.rows : [];
+            $.each(rows, function (i, cat) {
+                if (!cat || !cat.categoryId) return;   /* continue */
 
-                rows.forEach(function (cat) {
-                    if (!cat || !cat.categoryId) return;
+                /* text 옵션으로 넣으면 jQuery가 이스케이프 → XSS 방지 */
+                var $btn = $('<button>', {
+                    type:           'button',
+                    'class':        'rag-cat-btn',
+                    'aria-pressed': 'false',
+                    text:           cat.categoryName || '(이름 없음)',
+                    title:          cat.categoryName || ''
+                }).attr('data-category-id', cat.categoryId);
+                $list.append($btn);
+            });
 
-                    var btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'rag-cat-btn';
-                    btn.dataset.categoryId = cat.categoryId;
-                    btn.setAttribute('aria-pressed', 'false');
-                    btn.textContent = cat.categoryName || '(이름 없음)';   /* XSS 방지 */
-                    btn.title = cat.categoryName || '';
-                    listEl.appendChild(btn);
-                });
-
-                if (!rows.length) {
-                    msgEl.textContent = '등록된 카테고리가 없습니다.';
-                }
-            } catch (e) {
-                msgEl.textContent = '카테고리 목록을 불러오지 못했습니다. (' + e.message + ')';
-                msgEl.classList.add('is-error');
+            if (!rows.length) {
+                $msg.text('등록된 카테고리가 없습니다.');
             }
-        })();
-    })();
+        }).fail(function (xhr) {
+            $msg.text('카테고리 목록을 불러오지 못했습니다. (HTTP ' + xhr.status + ')')
+                .addClass('is-error');
+        });
+    });
 
     /* ── RAG 채팅 세션 + 답변 스트리밍 ───────────────────────
        세션 목록/생성/복원과 스트리밍은 currentSessionId 상태를 공유하므로
-       하나의 IIFE로 통합한다. (기존 스트리밍 로직은 그대로 재사용) */
-    (function () {
+       하나의 초기화 블록으로 통합한다. (스트리밍만 fetch 유지 — 아래 주석 참고) */
+    $(function () {
         var CONTEXT      = '${pageContext.request.contextPath}';
         /* D: POST /user/rag/docs  body { query, categoryId?, sessionId? }
            →  200  text/event-stream  (data: 토큰 …)  답변 토큰 스트림 */
@@ -224,78 +217,73 @@
         var GREETING = '안녕하세요. 무엇을 도와드릴까요? 궁금한 내용을 입력해 주세요.';
         var DEFAULT_TITLE = '새로운채팅';   /* 서버 기본 세션 제목 — 자동 요약 변경 트리거 판별용 */
 
-        var messagesEl = document.getElementById('chatMessages');
-        var formEl     = document.getElementById('chatForm');
-        var inputEl    = document.getElementById('chatInput');
-        var sendBtn    = document.getElementById('chatSendBtn');
+        var $messages    = $('#chatMessages');
+        var $form        = $('#chatForm');
+        var $input       = $('#chatInput');
+        var $sendBtn     = $('#chatSendBtn');
 
-        var sessionListEl = document.getElementById('ragSessionList');
-        var sessionMsgEl  = document.getElementById('ragSessionMsg');
-        var newBtn        = document.getElementById('ragSessionNewBtn');
+        var $sessionList = $('#ragSessionList');
+        var $sessionMsg  = $('#ragSessionMsg');
+        var $newBtn      = $('#ragSessionNewBtn');
 
         /* 현재 활성 세션 ID (없으면 null). 요구4에서 전송 시 자동 생성. */
         var currentSessionId = null;
 
-        /* 메시지 말풍선 추가 — 텍스트는 textContent로 삽입(XSS 방지).
-           말풍선(.chat-bubble) 요소를 반환해 스트리밍 토큰을 이어붙일 수 있게 한다. */
+        /* $.ajax(jqXHR)를 표준 Promise로 감싸 실패 시 Error(message) 로 정규화한다.
+           → async/await 의 catch(e) 에서 e.message 를 일관되게 사용하기 위함. */
+        function ajaxJson(options) {
+            return Promise.resolve($.ajax(options)).catch(function (jqXHR) {
+                var msg = (jqXHR && jqXHR.status)
+                        ? ('HTTP ' + jqXHR.status)
+                        : ((jqXHR && jqXHR.statusText) || '요청 실패');
+                throw new Error(msg);
+            });
+        }
+
+        /* 메시지 말풍선 추가 — 텍스트는 text()로 삽입(XSS 방지).
+           말풍선(.chat-bubble) jQuery 객체를 반환해 스트리밍 토큰을 이어붙일 수 있게 한다. */
         function appendMessage(role, text) {
-            var row = document.createElement('div');
-            row.className = 'chat-msg chat-msg--' + role;
+            var $bubble = $('<div>', { 'class': 'chat-bubble', text: text });
+            var $row = $('<div>', { 'class': 'chat-msg chat-msg--' + role }).append($bubble);
 
-            var bubble = document.createElement('div');
-            bubble.className = 'chat-bubble';
-            bubble.textContent = text;
-
-            row.appendChild(bubble);
-            messagesEl.appendChild(row);
+            $messages.append($row);
             scrollToBottom();
-            return bubble;
+            return $bubble;
         }
 
         /* 타이핑 인디케이터 표시/제거 */
         function showTyping() {
-            var row = document.createElement('div');
-            row.className = 'chat-msg chat-msg--bot';
-            row.id = 'chatTyping';
+            var $typing = $('<div>', { 'class': 'chat-typing' })
+                .append($('<span>'), $('<span>'), $('<span>'));
+            var $bubble = $('<div>', { 'class': 'chat-bubble' }).append($typing);
+            var $row = $('<div>', { 'class': 'chat-msg chat-msg--bot', id: 'chatTyping' }).append($bubble);
 
-            var bubble = document.createElement('div');
-            bubble.className = 'chat-bubble';
-
-            var typing = document.createElement('div');
-            typing.className = 'chat-typing';
-            typing.appendChild(document.createElement('span'));
-            typing.appendChild(document.createElement('span'));
-            typing.appendChild(document.createElement('span'));
-
-            bubble.appendChild(typing);
-            row.appendChild(bubble);
-            messagesEl.appendChild(row);
+            $messages.append($row);
             scrollToBottom();
         }
         function removeTyping() {
-            var t = document.getElementById('chatTyping');
-            if (t) t.remove();
+            $('#chatTyping').remove();
         }
 
         function scrollToBottom() {
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            $messages.scrollTop($messages[0].scrollHeight);
         }
 
         /* textarea 높이 자동 조절 */
         function autoGrow() {
-            inputEl.style.height = 'auto';
-            inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
+            $input.css('height', 'auto')
+                  .css('height', Math.min($input[0].scrollHeight, 140) + 'px');
         }
 
         /* 좌측 패널에서 선택된 카테고리 ID 반환 ("전체"면 빈 문자열) */
         function getSelectedCategoryId() {
-            var sel = document.querySelector('#ragCatList .rag-cat-btn.is-selected');
-            return sel ? sel.dataset.categoryId : '';
+            var $sel = $('#ragCatList .rag-cat-btn.is-selected');
+            return $sel.length ? ($sel.attr('data-category-id') || '') : '';
         }
 
         /* ── 채팅창 초기화 (기본 인사 1건만 남김) ── */
         function resetChatWindow() {
-            messagesEl.innerHTML = '';
+            $messages.empty();
             appendMessage('bot', GREETING);
             scrollToBottom();
         }
@@ -310,87 +298,80 @@
 
         /* ── 세션 항목 렌더 (prepend=true 시 목록 최상단에 추가) ── */
         function renderSessionItem(session, prepend) {
-            var item = document.createElement('button');
-            item.type = 'button';
-            item.className = 'rag-session-item';
-            item.dataset.sessionId = session.sessionId;
+            var $title = $('<span>', {
+                'class': 'rag-session-item__title',
+                text:    session.title || '새로운채팅'   /* XSS 방지 */
+            });
+            var $date = $('<span>', {
+                'class': 'rag-session-item__date',
+                text:    formatDate(session.createDate)
+            });
+            var $item = $('<button>', { type: 'button', 'class': 'rag-session-item' })
+                .attr('data-session-id', session.sessionId)
+                .append($title, $date);
 
-            var titleEl = document.createElement('span');
-            titleEl.className = 'rag-session-item__title';
-            titleEl.textContent = session.title || '새로운채팅';   /* XSS 방지 */
-
-            var dateEl = document.createElement('span');
-            dateEl.className = 'rag-session-item__date';
-            dateEl.textContent = formatDate(session.createDate);
-
-            item.appendChild(titleEl);
-            item.appendChild(dateEl);
-
-            if (prepend && sessionListEl.firstChild) {
-                sessionListEl.insertBefore(item, sessionListEl.firstChild);
+            if (prepend) {
+                $sessionList.prepend($item);
             } else {
-                sessionListEl.appendChild(item);
+                $sessionList.append($item);
             }
-            return item;
+            return $item;
         }
 
         /* 활성 세션 설정 + 목록 선택 표시 이동 */
         function setActiveSession(sessionId) {
             currentSessionId = sessionId;
-            sessionListEl.querySelectorAll('.rag-session-item').forEach(function (el) {
-                el.classList.toggle('is-selected', el.dataset.sessionId === sessionId);
+            $sessionList.find('.rag-session-item').each(function () {
+                $(this).toggleClass('is-selected', $(this).attr('data-session-id') === sessionId);
             });
         }
 
         /* A: 세션 목록 로딩 (페이지 로드 시). 목록 있으면 최신(최상단) 세션 자동 활성 + 대화 복원. */
         async function loadSessions() {
             try {
-                var res = await fetch(SESSIONS_URL + '?page=1&rows=100', {
-                    headers: { 'Accept': 'application/json' }
+                var data = await ajaxJson({
+                    url:      SESSIONS_URL + '?page=1&rows=100',
+                    type:     'GET',
+                    dataType: 'json',
+                    headers:  { 'Accept': 'application/json' }
                 });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-
-                var data = await res.json();
                 var rows = data && Array.isArray(data.rows) ? data.rows : [];
 
-                sessionListEl.innerHTML = '';
-                rows.forEach(function (s) {
+                $sessionList.empty();
+                $.each(rows, function (i, s) {
                     if (s && s.sessionId) renderSessionItem(s, false);
                 });
 
                 if (!rows.length) {
-                    sessionMsgEl.textContent = '채팅을 시작하면 세션이 생성됩니다.';
-                    sessionMsgEl.classList.remove('is-error');
+                    $sessionMsg.text('채팅을 시작하면 세션이 생성됩니다.').removeClass('is-error');
                     currentSessionId = null;
                 } else {
-                    sessionMsgEl.textContent = '';
-                    sessionMsgEl.classList.remove('is-error');
+                    $sessionMsg.text('').removeClass('is-error');
                     /* 최신(최상단, create_date DESC) 세션 자동 활성화 + 복원 */
                     setActiveSession(rows[0].sessionId);
                     await loadMessages(rows[0].sessionId);
                 }
             } catch (e) {
-                sessionMsgEl.textContent = '세션 목록을 불러오지 못했습니다. (' + e.message + ')';
-                sessionMsgEl.classList.add('is-error');
+                $sessionMsg.text('세션 목록을 불러오지 못했습니다. (' + e.message + ')')
+                           .addClass('is-error');
             }
         }
 
         /* B: 새 세션 생성 → 목록 최상단 추가 + 활성화. 생성된 sessionId 반환. */
         async function createSession() {
-            var res = await fetch(SESSIONS_URL, {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body:    JSON.stringify({})
+            var data = await ajaxJson({
+                url:         SESSIONS_URL,
+                type:        'POST',
+                contentType: 'application/json',
+                dataType:    'json',
+                headers:     { 'Accept': 'application/json' },
+                data:        JSON.stringify({})
             });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-
-            var data = await res.json();
             if (!data || !data.success || !data.sessionId) {
                 throw new Error((data && data.message) || '세션 생성에 실패했습니다.');
             }
 
-            sessionMsgEl.textContent = '';
-            sessionMsgEl.classList.remove('is-error');
+            $sessionMsg.text('').removeClass('is-error');
 
             renderSessionItem({
                 sessionId:  data.sessionId,
@@ -404,47 +385,51 @@
         /* C: 세션 대화 복원 → 채팅창을 해당 대화로 교체. assistant → bot 매핑. */
         async function loadMessages(sessionId) {
             try {
-                var res = await fetch(SESSIONS_URL + '/' + encodeURIComponent(sessionId) + '/messages', {
-                    headers: { 'Accept': 'application/json' }
+                var data = await ajaxJson({
+                    url:      SESSIONS_URL + '/' + encodeURIComponent(sessionId) + '/messages',
+                    type:     'GET',
+                    dataType: 'json',
+                    headers:  { 'Accept': 'application/json' }
                 });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-
-                var data = await res.json();
                 var rows = data && Array.isArray(data.rows) ? data.rows : [];
 
-                messagesEl.innerHTML = '';
+                $messages.empty();
                 if (!rows.length) {
                     appendMessage('bot', GREETING);
                     scrollToBottom();
                     return;
                 }
-                rows.forEach(function (m) {
+                $.each(rows, function (i, m) {
                     var cls = (m.role === 'assistant') ? 'bot' : 'user';   /* 역할 매핑 */
                     appendMessage(cls, m.content || '');
                 });
                 scrollToBottom();
             } catch (e) {
-                messagesEl.innerHTML = '';
+                $messages.empty();
                 appendMessage('bot', '이전 대화를 불러오지 못했습니다. (' + e.message + ')');
             }
         }
 
-        /* sessionId 로 목록 항목 DOM 찾기(속성 선택자 대신 순회 — 값 안전) */
+        /* sessionId 로 목록 항목 jQuery 객체 찾기(속성 선택자 대신 순회 — 값 안전). 없으면 null. */
         function getSessionItem(sessionId) {
-            var items = sessionListEl.querySelectorAll('.rag-session-item');
-            for (var i = 0; i < items.length; i++) {
-                if (items[i].dataset.sessionId === sessionId) return items[i];
-            }
-            return null;
+            var $found = null;
+            $sessionList.find('.rag-session-item').each(function () {
+                if ($(this).attr('data-session-id') === sessionId) {
+                    $found = $(this);
+                    return false;   /* break */
+                }
+            });
+            return $found;
         }
 
         /* A 재조회로 특정 세션의 최신 title 조회. 없으면 null. */
         async function fetchSessionTitle(sessionId) {
-            var res = await fetch(SESSIONS_URL + '?page=1&rows=100', {
-                headers: { 'Accept': 'application/json' }
+            var data = await ajaxJson({
+                url:      SESSIONS_URL + '?page=1&rows=100',
+                type:     'GET',
+                dataType: 'json',
+                headers:  { 'Accept': 'application/json' }
             });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            var data = await res.json();
             var rows = data && Array.isArray(data.rows) ? data.rows : [];
             for (var i = 0; i < rows.length; i++) {
                 if (rows[i] && rows[i].sessionId === sessionId) return rows[i].title || '';
@@ -458,9 +443,9 @@
              활성 선택 상태/채팅창은 건드리지 않는다. 지연 재조회 2회(1초 뒤, 여전히 기본값이면 3초 뒤). */
         function refreshSessionTitle(sessionId) {
             if (!sessionId) return;
-            var item = getSessionItem(sessionId);
-            var titleEl = item ? item.querySelector('.rag-session-item__title') : null;
-            if (!titleEl || titleEl.textContent !== DEFAULT_TITLE) return;   /* 기본값 아니면 조회 불필요 */
+            var $item = getSessionItem(sessionId);
+            var $titleEl = $item ? $item.find('.rag-session-item__title') : null;
+            if (!$titleEl || !$titleEl.length || $titleEl.text() !== DEFAULT_TITLE) return;   /* 기본값 아니면 조회 불필요 */
 
             var delays = [1000, 3000];
             var idx = 0;
@@ -468,14 +453,14 @@
             function attempt() {
                 setTimeout(async function () {
                     /* 재조회 직전에도 여전히 기본값일 때만 진행(중간에 반영/삭제됐으면 종료) */
-                    var curItem = getSessionItem(sessionId);
-                    var curTitleEl = curItem ? curItem.querySelector('.rag-session-item__title') : null;
-                    if (!curTitleEl || curTitleEl.textContent !== DEFAULT_TITLE) return;
+                    var $curItem = getSessionItem(sessionId);
+                    var $curTitleEl = $curItem ? $curItem.find('.rag-session-item__title') : null;
+                    if (!$curTitleEl || !$curTitleEl.length || $curTitleEl.text() !== DEFAULT_TITLE) return;
                     try {
                         var title = await fetchSessionTitle(sessionId);
                         if (title && title !== DEFAULT_TITLE) {
-                            curTitleEl.textContent = title;   /* 항목 텍스트만 갱신(XSS 방지: textContent) */
-                            return;                            /* 반영 완료 → 재시도 중단 */
+                            $curTitleEl.text(title);   /* 항목 텍스트만 갱신(XSS 방지: text()) */
+                            return;                     /* 반영 완료 → 재시도 중단 */
                         }
                     } catch (e) {
                         /* 재조회 실패는 조용히 무시 — 제목은 기본값 유지, 채팅 흐름 영향 없음 */
@@ -488,7 +473,8 @@
         }
 
         /* /user/rag/docs 답변 스트림 소비.
-           fetch ReadableStream을 직접 읽어 SSE(data: 라인)를 파싱하고
+           jQuery $.ajax 는 응답을 끝까지 받은 뒤에야 콜백을 호출하므로 토큰 스트리밍이 불가능하다.
+           따라서 이 함수만 fetch ReadableStream 을 직접 읽어 SSE(data: 라인)를 파싱하고
            토큰마다 onToken(text)을 호출한다. (EventSource는 GET만 지원하므로 미사용)
            Spring SSE는 'data:' 뒤에 공백을 추가하지 않으므로 slice(5)로 원문을 보존한다. */
         async function streamAnswer(query, onToken) {
@@ -525,9 +511,9 @@
                 var events = buffer.split('\n\n');
                 buffer = events.pop();
 
-                events.forEach(function (evt) {
+                $.each(events, function (i, evt) {
                     var dataLines = [];
-                    evt.split('\n').forEach(function (line) {
+                    $.each(evt.split('\n'), function (j, line) {
                         if (line.indexOf('data:') === 0) {
                             dataLines.push(line.slice(5));
                         }
@@ -538,72 +524,75 @@
         }
 
         async function handleSend() {
-            var text = inputEl.value.trim();
+            var text = $.trim($input.val());
             if (!text) return;
 
             /* 요구4: 활성 세션이 없으면 먼저 "새로운채팅" 세션을 자동 생성해 귀속.
                (채팅창은 초기화하지 않고 현재 메시지를 그대로 이어간다) */
             if (!currentSessionId) {
-                sendBtn.disabled = true;
+                $sendBtn.prop('disabled', true);
                 try {
                     await createSession();
                 } catch (e) {
                     appendMessage('bot', '세션 생성 중 오류가 발생했습니다. (' + e.message + ')');
-                    sendBtn.disabled = false;
+                    $sendBtn.prop('disabled', false);
                     return;
                 }
-                sendBtn.disabled = false;
+                $sendBtn.prop('disabled', false);
             }
 
             /* 이 메시지가 귀속된 세션 — 스트리밍 중 세션 전환에도 안전하게 캡처 */
             var sendSessionId = currentSessionId;
 
             appendMessage('user', text);
-            inputEl.value = '';
+            $input.val('');
             autoGrow();
-            inputEl.focus();
+            $input.trigger('focus');
 
-            sendBtn.disabled = true;
+            $sendBtn.prop('disabled', true);
             showTyping();
 
-            var bubble = null;
+            var $bubble = null;
             try {
                 await streamAnswer(text, function (token) {
-                    if (!bubble) {
+                    if (!$bubble) {
                         removeTyping();
-                        bubble = appendMessage('bot', '');
-                        bubble.classList.add('is-streaming');
+                        $bubble = appendMessage('bot', '');
+                        $bubble.addClass('is-streaming');
                     }
-                    bubble.textContent += token;
+                    $bubble.text($bubble.text() + token);
                     scrollToBottom();
                 });
 
-                if (!bubble) {
+                if (!$bubble) {
                     removeTyping();
                     appendMessage('bot', '응답을 받지 못했습니다.');
                 } else {
-                    bubble.classList.remove('is-streaming');
+                    $bubble.removeClass('is-streaming');
                     /* T7: 정상 답변 완료 → 서버의 세션 제목 자동 요약 반영 시도(기본값일 때만) */
                     refreshSessionTitle(sendSessionId);
                 }
             } catch (e) {
                 removeTyping();
-                if (bubble) {
-                    bubble.classList.remove('is-streaming');
-                    bubble.textContent += '\n[오류] ' + e.message;
+                if ($bubble) {
+                    $bubble.removeClass('is-streaming');
+                    $bubble.text($bubble.text() + '\n[오류] ' + e.message);
                 } else {
                     appendMessage('bot', '답변 생성 중 오류가 발생했습니다. (' + e.message + ')');
                 }
             } finally {
-                sendBtn.disabled = false;
+                $sendBtn.prop('disabled', false);
             }
         }
 
-        formEl.addEventListener('submit', handleSend);
-        inputEl.addEventListener('input', autoGrow);
+        $form.on('submit', function (e) {
+            e.preventDefault();
+            handleSend();
+        });
+        $input.on('input', autoGrow);
 
         /* Enter 전송, Shift+Enter 줄바꿈 */
-        inputEl.addEventListener('keydown', function (e) {
+        $input.on('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();
@@ -611,35 +600,32 @@
         });
 
         /* 요구3: "새 채팅" → 새 세션 생성 + 채팅창 초기화 + 목록 상단 추가·활성화 */
-        newBtn.addEventListener('click', async function () {
-            newBtn.disabled = true;
+        $newBtn.on('click', async function () {
+            $newBtn.prop('disabled', true);
             try {
                 await createSession();
                 resetChatWindow();
-                inputEl.focus();
+                $input.trigger('focus');
             } catch (e) {
-                sessionMsgEl.textContent = '새 채팅 생성 실패: ' + e.message;
-                sessionMsgEl.classList.add('is-error');
+                $sessionMsg.text('새 채팅 생성 실패: ' + e.message).addClass('is-error');
             } finally {
-                newBtn.disabled = false;
+                $newBtn.prop('disabled', false);
             }
         });
 
         /* 요구6: 세션 항목 클릭 → 활성 전환 + 대화 복원 */
-        sessionListEl.addEventListener('click', async function (e) {
-            var item = e.target.closest('.rag-session-item');
-            if (!item) return;
-            var sid = item.dataset.sessionId;
+        $sessionList.on('click', '.rag-session-item', async function () {
+            var sid = $(this).attr('data-session-id');
             if (!sid || sid === currentSessionId) return;
             setActiveSession(sid);
             await loadMessages(sid);
         });
 
-        inputEl.focus();
+        $input.trigger('focus');
 
         /* 요구7: 페이지 로드 시 세션 목록 초기 로드 */
         loadSessions();
-    })();
+    });
 </script>
 
 </body>
