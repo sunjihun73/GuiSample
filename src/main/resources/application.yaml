@@ -45,6 +45,20 @@ spring:
         distance-type: COSINE_DISTANCE
         dimensions: 1536
 
+# Kanana SafeGuard 입력 가드레일 (OpenAI 호환 API)
+# getDocs(RAG 답변) 생성 전에 사용자 질문을 Kanana 로 분류해 unsafe 면 차단한다.
+guardrail:
+  kanana:
+    enabled: true
+    # OpenAI 호환 엔드포인트 (LM Studio 등). 실제 로드된 모델 id 로 model 값을 맞춰 주세요.
+    base-url: ${KANANA_BASE_URL:http://192.168.35.59:1234}
+    api-key: ${KANANA_API_KEY:not-needed}       # 로컬 서버는 키 미검증 — 더미 값 허용
+    model: ${KANANA_MODEL:kakaocorp.kanana-safeguard-8b}      # ← 서버에 로드된 실제 모델 id 로 설정
+    completions-path: /v1/chat/completions
+    # 가드 모델에 보낼 시스템 프롬프트(선택). 비우면 사용자 메시지만 전송(safeguard 모델 자체 템플릿 사용).
+    system-prompt: ""
+    failure-response: "죄송합니다. 요청하신 내용은 안전 정책에 따라 답변할 수 없습니다."
+
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

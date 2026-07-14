@@ -1,5 +1,6 @@
 package kr.co.jihun.guisample.service;
 
+import kr.co.jihun.guisample.advisor.KananaSafeGuardAdvisor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -27,6 +28,8 @@ public class AIService
 {
     private final VectorStore vectorStore;
     private final ChatClient chatClient;
+    /** Kanana SafeGuard 기반 입력 가드레일 — RAG 답변 생성 전 unsafe 질문을 차단한다. */
+    private final KananaSafeGuardAdvisor kananaSafeGuardAdvisor;
 
     /** 컨텍스트로 사용할 최대 문서 수 */
     private static final int TOP_K = 4;
@@ -121,6 +124,8 @@ public class AIService
                         .collect(Collectors.joining("\n\n---\n\n"));
 
         return chatClient.prompt()
+                // 가드레일: Kanana SafeGuard 로 질문을 분류해 unsafe 면 gpt-4o-mini 호출을 단락하고 거부 응답을 반환
+                .advisors(kananaSafeGuardAdvisor)
                 .system(spec -> spec.text(SYSTEM_PROMPT).param("context", context))
                 .user(query)
                 .stream()
