@@ -1,10 +1,12 @@
 package kr.co.jihun.guisample.config;
 
 import kr.co.jihun.guisample.advisor.KananaSafeGuardAdvisor;
+import kr.co.jihun.guisample.advisor.RagContextAdvisor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -77,5 +79,17 @@ public class SpringAiConfig
     {
         return new KananaSafeGuardAdvisor(
                 kananaGuardChatClient, enabled, systemPrompt, failureResponse, Ordered.HIGHEST_PRECEDENCE);
+    }
+
+    /**
+     * RAG 컨텍스트 주입 어드바이저 빈.
+     * <p>order 는 {@link KananaSafeGuardAdvisor}({@link Ordered#HIGHEST_PRECEDENCE}) 보다 뒤
+     * ({@code HIGHEST_PRECEDENCE + 100}) 로 두어, <b>가드레일을 통과한 질문에 대해서만</b> 벡터 검색이
+     * 실행되도록 순서를 보장한다(unsafe 질문은 가드가 단락 → 검색 비용 미발생).
+     */
+    @Bean
+    public RagContextAdvisor ragContextAdvisor(VectorStore vectorStore)
+    {
+        return new RagContextAdvisor(vectorStore, 4, Ordered.HIGHEST_PRECEDENCE + 100);
     }
 }

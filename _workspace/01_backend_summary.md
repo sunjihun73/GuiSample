@@ -135,3 +135,35 @@
 ### 7.3 프론트(T7) 안내
 - `/docs` 스트림 정상 종료(SSE 완료) 후 **`GET /user/rag/sessions` 재조회** → rows[].title 갱신분 반영. 제목 변경은 비동기라 스트림 종료 직후 수백 ms 내 반영될 수 있음(요약 LLM 호출 시간). 필요 시 약간의 지연 후 재조회 또는 재시도 권장.
 - 자동 변경은 세션 최초 대화 1회에만 발생(이후/수동 변경 세션은 불변).
+
+---
+
+## 8. T8 — 벡터 검색을 어드바이저 체인 안으로 이동 (가드레일 우선) (후속)
+
+> 상태: `./gradlew clean compileJava` BUILD SUCCESSFUL (2026-07-15)
+> 배경: 기존 `AIService.streamChat()` 은 `vectorStore.similaritySearch()` 를 어드바이저 체인 **밖**에서
+> 먼저 실행한 뒤 그 컨텍스트를 시스템 프롬프트에 넣고 가드 어드바이저를 호출했다. 그래서 unsafe 질문이어도
+> 벡터 검색 비용이 이미 발생했다. 벡터 검색+컨텍스트 주입을 **가드 뒤 순서의 어드바이저 안**으로 옮겨,
+> 가드레일을 통과한 질문에 대해서만 검색이 실행되도록 순서 계약을 order 값으로 보장한다.
+
+### 8.1 변경/추가 파일
+| 유형 | 경로 | 변경 |
+|------|------|------|
+| Advisor | `advisor/RagContextAdvisor.java` | **신규** — `CallAdvisor`+`StreamAdvisor`. 벡터 검색 후 시스템 메시지에 컨텍스트 주입 |
+| Config | `config/SpringAiConfig.java` | `ragContextAdvisor` 빈 추가(VectorStore 주입, top-k 4, order `HIGHEST_PRECEDENCE+100`) |
+| Service | `service/AIService.java` | `streamChat()` 리팩터 — 벡터 검색/SearchRequest/Filter/context join/SYSTEM_PROMPT/TOP_K/VectorStore 필드 제거, 어드바이저 체인으로 이동 |
+
+### 8.2 어드바이저 체인 실행 순서 (order 값)
+1. `KananaSafeGuardAdvisor` — `Ordered.HIGHEST_PRECEDENCE` (가장 먼저). unsafe 면 체인 단락 → 벡터 검색·gpt-4o-mini 미호출.
+2. `RagContextAdvisor` — `Ordered.HIGHEST_PRECEDENCE + 100` (가드 뒤). 가드 통과 시에만 `vectorStore.similaritySearch()` 실행 → 문서 본문을 `\n\n---\n\n` join(없으면 `"(관련 문서가 없습니다.)"`) → 시스템 프롬프트 `{context}` 자리에 **리터럴 치환**(`String.replace`, 문서 중괄호 안전) → `Prompt.augmentSystemMessage(...)` + `ChatClientRequest.mutate()` 로 시스템 메시지만 증강해 다음으로 전달. **user 메시지 원문 불변**(가드가 본 질문과 동일).
+
+### 8.3 category_id 전달 방식
+- `streamChat()` 이 `.advisors(spec -> { if (categoryId 비어있지 않음) spec.param("category_id", categoryId); })` 로 어드바이저 파라미터에 전달. (Spring AI `AdvisorSpec.param` 은 value null 을 거부하므로 값이 있을 때만 세팅.)
+- 파라미터는 프레임워크가 `ChatClientRequest.context()` 로 전파. `RagContextAdvisor` 는 `request.context().get("category_id")` 로 읽어 값이 있으면 `FilterExpressionBuilder().eq("category_id", ...)` 를 `SearchRequest` 에 적용, null/공백이면 전체 검색.
+
+### 8.4 불변 사항 / 회귀 없음
+- `streamChat(query, categoryId): Flux<ChatResponse>` 시그니처·반환 형태 유지 → `getDocs()`/`AIRestController`/`ChatService` 저장 경로 **하위호환**.
+- SSE `/docs` 응답 포맷 불변, REST 응답 shape(§3) 불변 → 프론트(T3/T7) 변경 없음.
+- `summarizeTitle()` 은 손대지 않음 — 가드/RAG 어드바이저 미적용(순수 요약)이 의도된 설계.
+- 스트리밍 경로의 블로킹 `similaritySearch` 는 `Mono.fromCallable(...).subscribeOn(Schedulers.boundedElastic()).flatMapMany(chain::nextStream)` 로 오프로딩(KananaSafeGuardAdvisor.adviseStream 과 동일 스타일).
+- Spring AI **2.0.0-M4** 실 API 확인 사용: `ChatClientRequest.mutate()/context()`, `Prompt.augmentSystemMessage(String)`, `Prompt.getUserMessage()`.
