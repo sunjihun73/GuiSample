@@ -1072,6 +1072,101 @@ body {
 .rag-cat-msg:empty { display: none; }
 .rag-cat-msg.is-error { color: #d70015; }
 
+/* ══ RAG 채팅 세션 패널 (카테고리 다음 · 카테고리보다 좁게) ══════ */
+/* 3단 레이아웃: [.rag-cat-panel(20%)] [.rag-session-panel(15%)] [.chat-window] */
+.rag-session-panel {
+    flex: 0 0 15%;              /* 카테고리(20%)보다 좁게 — 요구2 */
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--rounded-lg);
+    padding: var(--sp-md);
+    overflow-y: auto;
+}
+.rag-session-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-xs);
+    margin: 0 0 var(--sp-sm);
+    padding: 0 var(--sp-xs);
+}
+.rag-session-panel__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-muted-80);
+    margin: 0;
+}
+.rag-session-newbtn {
+    font-family: var(--font-text);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    background: #e8f0fb;
+    border: 1px solid transparent;
+    border-radius: var(--rounded-pill);
+    padding: 4px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s;
+}
+.rag-session-newbtn:hover { background: #d8e6f8; }
+.rag-session-newbtn:disabled { opacity: 0.5; cursor: default; }
+
+/* 세션 항목 세로 목록 */
+.rag-session-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-xxs);
+}
+.rag-session-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    text-align: left;
+    font-family: var(--font-text);
+    color: var(--ink);
+    background: var(--canvas);
+    border: 1px solid transparent;
+    border-radius: var(--rounded-md);
+    padding: var(--sp-xs) var(--sp-sm);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+.rag-session-item:hover { background: var(--canvas-parchment); }
+.rag-session-item.is-selected {
+    background: #e8f0fb;
+    color: var(--primary);
+}
+.rag-session-item__title {
+    font-size: 14px;
+    line-height: 1.35;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.rag-session-item.is-selected .rag-session-item__title { font-weight: 600; }
+.rag-session-item__date {
+    font-size: 11px;
+    color: var(--ink-muted-48);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 세션 로딩 상태/오류/빈 목록 메시지 */
+.rag-session-msg {
+    font-size: 13px;
+    color: var(--ink-muted-80);
+    padding: var(--sp-xs);
+}
+.rag-session-msg:empty { display: none; }
+.rag-session-msg.is-error { color: #d70015; }
+
 /* ══ content 좌우 분할 레이아웃 ══════════════════════════ */
 /* content 영역 좌우 1:1 분할 */
 .content-split {
