@@ -54,7 +54,7 @@ guardrail:
 #    base-url: ${KANANA_BASE_URL:http://192.168.35.59:1234}
     base-url: ${KANANA_BASE_URL:http://kanana-safeguard-model.jihun.com}
     api-key: ${KANANA_API_KEY:not-needed}       # 로컬 서버는 키 미검증 — 더미 값 허용
-    model: ${KANANA_MODEL:kakaocorp.kanana-safeguard-8b}      # ← 서버에 로드된 실제 모델 id 로 설정
+    model: ${KANANA_MODEL:kakaocorp_kanana-safeguard-8b}      # ← 서버에 로드된 실제 모델 id 로 설정
     completions-path: /v1/chat/completions
     # 가드 모델에 보낼 시스템 프롬프트(선택). 비우면 사용자 메시지만 전송(safeguard 모델 자체 템플릿 사용).
     system-prompt: ""
