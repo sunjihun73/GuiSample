@@ -51,7 +51,8 @@ guardrail:
   kanana:
     enabled: true
     # OpenAI 호환 엔드포인트 (LM Studio 등). 실제 로드된 모델 id 로 model 값을 맞춰 주세요.
-    base-url: ${KANANA_BASE_URL:http://192.168.35.59:1234}
+#    base-url: ${KANANA_BASE_URL:http://192.168.35.59:1234}
+    base-url: ${KANANA_BASE_URL:http://kanana-safeguard-model.jihun.com}
     api-key: ${KANANA_API_KEY:not-needed}       # 로컬 서버는 키 미검증 — 더미 값 허용
     model: ${KANANA_MODEL:kakaocorp.kanana-safeguard-8b}      # ← 서버에 로드된 실제 모델 id 로 설정
     completions-path: /v1/chat/completions
