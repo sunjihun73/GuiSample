@@ -1,6 +1,5 @@
 package kr.co.jihun.guisample.service;
 
-import kr.co.jihun.guisample.advisor.KananaSafeGuardAdvisor;
 import kr.co.jihun.guisample.advisor.RagContextAdvisor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +10,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Spring AI 기반 RAG 서비스.
- * 어드바이저 체인(가드레일 → RAG 컨텍스트 주입)을 통해 ChatClient(gpt-4o-mini)로 답변을 스트리밍한다.
+ * 어드바이저 체인(RAG 컨텍스트 주입)을 통해 ChatClient(gpt-4o-mini)로 답변을 스트리밍한다.
  * 벡터 검색·컨텍스트 주입은 {@link RagContextAdvisor} 가 담당하고, 이 서비스는 어드바이저 등록과
  * category_id 파라미터 전달만 수행한다.
  */
@@ -21,9 +20,7 @@ import reactor.core.publisher.Flux;
 public class AIService
 {
     private final ChatClient chatClient;
-    /** Kanana SafeGuard 기반 입력 가드레일 — RAG 답변 생성 전 unsafe 질문을 차단한다. */
-    private final KananaSafeGuardAdvisor kananaSafeGuardAdvisor;
-    /** RAG 컨텍스트 주입 어드바이저 — 가드레일 통과 후 벡터 검색으로 컨텍스트를 시스템 메시지에 주입한다. */
+    /** RAG 컨텍스트 주입 어드바이저 — 벡터 검색으로 컨텍스트를 시스템 메시지에 주입한다. */
     private final RagContextAdvisor ragContextAdvisor;
 
     /** 자동 제목 요약 프롬프트(순수 요약 — RAG 컨텍스트/어드바이저 미사용). */
@@ -60,14 +57,12 @@ public class AIService
      * 질의에 대한 RAG 답변을 {@link ChatResponse} 단위로 스트리밍한다.
      * 텍스트뿐 아니라 model/usage(토큰) 메타데이터를 확보할 수 있어 대화 저장 경로에서 사용한다.
      *
-     * <p>동작(어드바이저 체인, order 순):
+     * <p>동작(어드바이저 체인):
      * <ol>
-     *   <li>{@link KananaSafeGuardAdvisor}(HIGHEST_PRECEDENCE): unsafe 질문 차단(단락).</li>
-     *   <li>{@link RagContextAdvisor}(HIGHEST_PRECEDENCE+100): 가드 통과 시 pgvector 유사도 검색
-     *       (top-k=4, category_id 메타 필터)으로 컨텍스트를 시스템 메시지에 주입.</li>
+     *   <li>{@link RagContextAdvisor}: pgvector 유사도 검색(top-k=4, category_id 메타 필터)으로
+     *       컨텍스트를 시스템 메시지에 주입.</li>
      *   <li>ChatClient 스트림을 {@code .chatResponse()} 로 소비 → Flux&lt;ChatResponse&gt;.</li>
      * </ol>
-     * 벡터 검색은 가드 뒤 순서의 어드바이저에서 실행되므로, unsafe 질문이면 검색 비용이 발생하지 않는다.
      * 각 청크에서 {@link #extractText(ChatResponse)} 로 델타 텍스트를, 마지막 청크의
      * {@code getMetadata()} 에서 model/usage 를 얻는다. 질의가 비면 {@link Flux#empty()}.
      *
@@ -83,8 +78,8 @@ public class AIService
         }
 
         return chatClient.prompt()
-                // 어드바이저 체인: 가드레일(먼저) → RAG 컨텍스트 주입(뒤). 실행 순서는 각 어드바이저 order 로 보장.
-                .advisors(kananaSafeGuardAdvisor, ragContextAdvisor)
+                // 어드바이저 체인: RAG 컨텍스트 주입.
+                .advisors(ragContextAdvisor)
                 // category_id 는 RagContextAdvisor 가 request.context() 로 읽는다. 값이 있을 때만 전달(param 은 null 불가).
                 .advisors(spec ->
                 {

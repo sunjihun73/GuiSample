@@ -29,11 +29,6 @@ import java.util.stream.Collectors;
  * 기존에 {@code AIService} 가 어드바이저 체인 <b>밖에서</b> 직접 하던 벡터 검색을 체인 <b>안으로</b>
  * 옮겨, 실행 순서 계약을 order 값으로 보장한다.
  *
- * <p><b>순서 계약:</b> 이 어드바이저의 order 는 {@link KananaSafeGuardAdvisor}
- * ({@link org.springframework.core.Ordered#HIGHEST_PRECEDENCE}) 보다 <b>뒤</b>
- * ({@code HIGHEST_PRECEDENCE + 100}) 여야 한다. 즉 <b>가드레일을 통과한 질문에 대해서만</b>
- * 벡터 검색이 실행된다. unsafe 질문은 가드가 체인을 단락하므로 검색 비용이 발생하지 않는다.
- *
  * <p>동작:
  * <ul>
  *   <li>request 의 마지막 user 메시지 텍스트로 {@link VectorStore#similaritySearch(SearchRequest)} 실행.</li>
@@ -44,7 +39,7 @@ import java.util.stream.Collectors;
  *       문서 본문에 중괄호가 있어도 템플릿으로 재파싱되지 않아 안전하다.</li>
  * </ul>
  *
- * <p><b>user 메시지는 원문 그대로 유지</b>한다(가드가 본 질문과 동일). 시스템 메시지만 증강한다.
+ * <p><b>user 메시지는 원문 그대로 유지</b>한다. 시스템 메시지만 증강한다.
  * 스트리밍 경로의 블로킹 벡터 검색은 {@link Schedulers#boundedElastic()} 로 오프로딩한다.
  */
 @Slf4j
@@ -78,7 +73,7 @@ public class RagContextAdvisor implements CallAdvisor, StreamAdvisor
     /** 컨텍스트로 사용할 최대 문서 수(top-k). */
     private final int topK;
 
-    /** 어드바이저 실행 순서(작을수록 먼저). 가드레일보다 뒤여야 한다(순서 계약 참조). */
+    /** 어드바이저 실행 순서(작을수록 먼저). */
     private final int order;
 
     public RagContextAdvisor(VectorStore vectorStore, int topK, int order)

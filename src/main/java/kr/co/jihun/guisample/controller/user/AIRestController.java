@@ -24,12 +24,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -192,6 +194,9 @@ public class AIRestController
                 .doOnNext(resp -> captureMetadata(resp.getMetadata(), model, promptTokens, completionTokens))
                 .map(AIService::extractText)
                 .filter(text -> !text.isEmpty())
+                // LLM 호출 예외(가드레일 차단 400 등)를 텍스트 1건으로 바꿔 스트림을 정상 종료시킨다.
+                // answer 누적보다 앞에 두어 거부/오류 메시지도 assistant 메시지로 저장되게 한다.
+                .onErrorResume(AIRestController::toUserMessage)
                 .doOnNext(answer::append);
 
         if (!hasSession)
@@ -253,6 +258,67 @@ public class AIRestController
         {
             log.error("세션 제목 자동 변경 실패 (sessionId={})", sessionId, e);
         }
+    }
+
+    /** LiteLLM 가드레일 차단 응답(400) 본문에서 흔히 관찰되는 표식 — 설정 오류 400 과 구분하는 데 사용. */
+    private static final List<String> GUARDRAIL_MARKERS =
+            List.of("guardrail", "violated", "unsafe", "content safety", "blocked", "moderation");
+
+    /** 가드레일 차단 시 사용자에게 노출할 거부 메시지. */
+    private static final String BLOCKED_MESSAGE =
+            "죄송합니다. 요청하신 내용은 안전 정책에 따라 답변할 수 없습니다.";
+
+    /** 그 외 LLM 호출 실패 시 노출할 안내 메시지. */
+    private static final String ERROR_MESSAGE =
+            "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+
+    /**
+     * LLM 호출 예외를 사용자에게 보여줄 텍스트 1건으로 변환한다.
+     *
+     * <p>이 엔드포인트는 {@code text/event-stream} 이라 예외를 그대로 흘리면 응답 커밋 전에
+     * DispatcherServlet 예외 경로로 빠져 HTTP 500 이 되고, Accept 협상 실패
+     * ({@code HttpMediaTypeNotAcceptableException})로 에러 본문조차 만들 수 없다.
+     * 따라서 모든 실패를 텍스트 방출 + 정상 종료(200)로 바꾼다.
+     *
+     * <p>가드레일 판정은 LiteLLM 이 수행하며, 차단 시 {@code 400 Bad Request} 로 응답한다.
+     * 모델명 오타·컨텍스트 초과 등도 400 이므로 응답 본문의 표식으로 구분하고,
+     * 구분에 관계없이 본문 전체를 로그로 남겨 조건을 좁힐 수 있게 한다.
+     */
+    private static Flux<String> toUserMessage(Throwable e)
+    {
+        WebClientResponseException wcre = findWebClientException(e);
+
+        if (wcre != null && wcre.getStatusCode().value() == 400)
+        {
+            String body = wcre.getResponseBodyAsString();
+            String normalized = body.toLowerCase(Locale.ROOT);
+
+            if (GUARDRAIL_MARKERS.stream().anyMatch(normalized::contains))
+            {
+                log.info("가드레일 차단(LiteLLM 400) — body={}", body);
+                return Flux.just(BLOCKED_MESSAGE);
+            }
+
+            // 가드레일 표식이 없는 400 — 모델명/요청 파라미터 설정 오류일 가능성이 높다.
+            log.error("LLM 요청 거부(400, 가드레일 표식 없음) — body={}", body);
+            return Flux.just(ERROR_MESSAGE);
+        }
+
+        log.error("RAG 답변 생성 실패", e);
+        return Flux.just(ERROR_MESSAGE);
+    }
+
+    /** 예외 원인 체인에서 {@link WebClientResponseException} 을 찾는다(래핑된 경우 대비). 없으면 null. */
+    private static WebClientResponseException findWebClientException(Throwable e)
+    {
+        for (Throwable t = e; t != null; t = t.getCause() == t ? null : t.getCause())
+        {
+            if (t instanceof WebClientResponseException wcre)
+            {
+                return wcre;
+            }
+        }
+        return null;
     }
 
     /** 마지막 청크 등에서 model/usage 를 확보. 값이 있을 때만 덮어쓴다. */
