@@ -39,9 +39,7 @@
         </where>
     </sql>
 
-    <select id="selectProjectMasterList"
-            parameterType="hashmap"
-            resultMap="projectMasterResultMap">
+    <select id="selectProjectMasterList" parameterType="hashmap" resultMap="projectMasterResultMap">
         SELECT
             <include refid="projectMasterColumns"/>
         FROM

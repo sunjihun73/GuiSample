@@ -1,4 +1,10 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="org.springframework.web.util.HtmlUtils" %>
+<%
+    /* Keycloak preferred_username — 상단바 표시용. HTML 이스케이프 후 출력한다. */
+    java.security.Principal principal = request.getUserPrincipal();
+    String loginName = (principal != null) ? HtmlUtils.htmlEscape(principal.getName()) : "";
+%>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -6,12 +12,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RAG — 기술테스트 시스템</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/common.css">
+
+    <%-- CSRF 토큰 — /js/csrf.js 가 읽어 모든 비-GET ajax 요청 헤더에 부착하고,
+         fetch 는 window.csrfHeader() 로 직접 사용한다. --%>
+    <meta name="_csrf" content="${_csrf.token}">
+    <meta name="_csrf_header" content="${_csrf.headerName}">
 </head>
 <body>
 
 <!-- ── Top Bar ── -->
 <header class="topbar">
     <a href="/" class="topbar__brand">기술테스트 시스템</a>
+    <div class="topbar__user">
+        <span class="topbar__username"><%= loginName %></span>
+        <form action="${pageContext.request.contextPath}/logout" method="post">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+            <button type="submit" class="topbar__logout">로그아웃</button>
+        </form>
+    </div>
 </header>
 
 <div class="app-shell">
@@ -137,6 +155,7 @@
 
 <!-- jQuery -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="${pageContext.request.contextPath}/js/csrf.js"></script>
 
 <script>
     /* ── 사이드바 토글 (다른 페이지와 동일) ───────────────── */
@@ -486,14 +505,19 @@
             /* 활성 세션 ID 전송 — 서버가 대화 저장에 사용 (요구5) */
             if (currentSessionId) payload.sessionId = currentSessionId;
 
+            /* CSRF 토큰 헤더를 함께 실어야 Spring Security 를 통과한다 (/js/csrf.js). */
+            var headers = Object.assign({
+                'Content-Type': 'application/json',
+                'Accept':       'text/event-stream'
+            }, window.csrfHeader());
+
             var res = await fetch(DOCS_URL, {
                 method:  'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept':       'text/event-stream'
-                },
-                body: JSON.stringify(payload)
+                headers: headers,
+                body:    JSON.stringify(payload)
             });
+            /* 세션 만료(401) 또는 CSRF 토큰 무효(403) → 새로고침해 Keycloak 로그인 흐름으로 되돌린다. */
+            if (res.status === 401 || res.status === 403) { window.location.reload(); return; }
             if (!res.ok)   throw new Error('HTTP ' + res.status);
             if (!res.body) throw new Error('스트림을 지원하지 않는 브라우저입니다.');
 

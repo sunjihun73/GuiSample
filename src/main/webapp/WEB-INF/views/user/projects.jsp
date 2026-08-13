@@ -1,4 +1,10 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="org.springframework.web.util.HtmlUtils" %>
+<%
+    /* Keycloak preferred_username — 상단바 표시용. HTML 이스케이프 후 출력한다. */
+    java.security.Principal principal = request.getUserPrincipal();
+    String loginName = (principal != null) ? HtmlUtils.htmlEscape(principal.getName()) : "";
+%>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -6,6 +12,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>프로젝트목록 — 기술테스트 시스템</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/common.css">
+
+    <%-- CSRF 토큰 — /js/csrf.js 가 읽어 모든 비-GET ajax 요청 헤더에 부착한다. --%>
+    <meta name="_csrf" content="${_csrf.token}">
+    <meta name="_csrf_header" content="${_csrf.headerName}">
 
     <!-- jQuery UI (jqGrid 테마) -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.min.css">
@@ -17,6 +27,13 @@
 <!-- ── Top Bar ── -->
 <header class="topbar">
     <a href="/" class="topbar__brand">기술테스트 시스템</a>
+    <div class="topbar__user">
+        <span class="topbar__username"><%= loginName %></span>
+        <form action="${pageContext.request.contextPath}/logout" method="post">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+            <button type="submit" class="topbar__logout">로그아웃</button>
+        </form>
+    </div>
 </header>
 
 <div class="app-shell">
@@ -155,6 +172,7 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/jquery.jqgrid.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/i18n/grid.locale-kr.min.js"></script>
+<script src="${pageContext.request.contextPath}/js/csrf.js"></script>
 
 <!-- TinyMCE 6.8.6 (로컬 static 서빙, MIT) -->
 <script src="${pageContext.request.contextPath}/tinymce/tinymce.min.js"></script>

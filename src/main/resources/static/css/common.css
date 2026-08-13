@@ -69,6 +69,92 @@ body {
     text-decoration: none;
 }
 
+/* 상단바 우측 — 로그인 사용자 + 로그아웃 */
+.topbar__user {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-sm);
+}
+
+.topbar__username {
+    font-size: 14px;
+    color: var(--ink-muted-48);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.topbar__logout {
+    height: 30px;
+    padding: 0 var(--sp-sm);
+    font-family: var(--font-text);
+    font-size: 13px;
+    color: var(--ink-muted-80);
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--rounded-pill);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.topbar__logout:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: var(--canvas-parchment);
+}
+
+/* ── 랜딩(home.jsp) ───────────────────────────────────── */
+.landing {
+    margin-top: var(--topbar-height);
+    height: calc(100vh - var(--topbar-height));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-lg);
+}
+
+.landing__card {
+    width: 100%;
+    max-width: 420px;
+    padding: var(--sp-xxl) var(--sp-xl);
+    text-align: center;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--rounded-lg);
+}
+
+.landing__title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--ink);
+}
+
+.landing__desc {
+    margin-top: var(--sp-xs);
+    font-size: 15px;
+    color: var(--ink-muted-48);
+}
+
+.landing__btn {
+    display: inline-block;
+    margin-top: var(--sp-lg);
+    min-width: 160px;
+    padding: 11px var(--sp-lg);
+    font-size: 15px;
+    font-weight: 500;
+    color: #ffffff;
+    background: var(--primary);
+    border-radius: var(--rounded-pill);
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+
+.landing__btn:hover { background: var(--primary-focus); }
+
 /* ── App Shell ────────────────────────────────────────── */
 .app-shell {
     display: flex;

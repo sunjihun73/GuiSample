@@ -28,6 +28,10 @@ dependencyManagement {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     compileOnly 'org.projectlombok:lombok'
+
+    // Security — Keycloak(OIDC) SSO 로그인
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     annotationProcessor 'org.projectlombok:lombok'
     providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat-runtime'

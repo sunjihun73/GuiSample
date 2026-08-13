@@ -1,5 +1,9 @@
 server:
   port: 8080
+  servlet:
+    session:
+      timeout: 60m
+  forward-headers-strategy: framework  # nginx 뒤에 있으므로 필수
 
 spring:
   # Load secrets (e.g. OPENAI_API_KEY) from a gitignored .env file if present
@@ -44,6 +48,20 @@ spring:
         index-type: HNSW
         distance-type: COSINE_DISTANCE
         dimensions: 1536
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: MyTechTestSiteAuth
+            client-secret: ${KEYCLOAK_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            scope: openid, profile, email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          keycloak:
+            issuer-uri: http://keycloak.jihun.com/realms/MyTechTestSite
+            user-name-attribute: preferred_username
 
 logging:
   pattern:

@@ -1,4 +1,10 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="org.springframework.web.util.HtmlUtils" %>
+<%
+    /* Keycloak preferred_username — 상단바 표시용. HTML 이스케이프 후 출력한다. */
+    java.security.Principal principal = request.getUserPrincipal();
+    String loginName = (principal != null) ? HtmlUtils.htmlEscape(principal.getName()) : "";
+%>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -12,6 +18,13 @@
 <!-- ── Top Bar ── -->
 <header class="topbar">
     <a href="/" class="topbar__brand">기술테스트 시스템</a>
+    <div class="topbar__user">
+        <span class="topbar__username"><%= loginName %></span>
+        <form action="${pageContext.request.contextPath}/logout" method="post">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+            <button type="submit" class="topbar__logout">로그아웃</button>
+        </form>
+    </div>
 </header>
 
 <div class="app-shell">
