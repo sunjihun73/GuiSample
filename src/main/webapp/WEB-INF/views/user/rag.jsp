@@ -105,7 +105,9 @@
     <main class="main-content rag-chat">
 
         <header class="page-header">
+            <p class="page-header__eyebrow">Assistant</p>
             <h1 class="page-header__title">RAG 챗봇</h1>
+            <p class="page-header__desc">색인된 지식베이스를 근거로 답변합니다. 카테고리를 선택해 검색 범위를 좁힐 수 있습니다.</p>
         </header>
 
         <!-- 본문: 카테고리 패널 + 세션 패널 + 우측 채팅 UI (3단) -->
@@ -125,7 +127,12 @@
             <aside class="rag-session-panel" aria-label="채팅 세션">
                 <div class="rag-session-panel__header">
                     <p class="rag-session-panel__title">채팅세션</p>
-                    <button type="button" id="ragSessionNewBtn" class="rag-session-newbtn">새 채팅</button>
+                    <button type="button" id="ragSessionNewBtn" class="rag-session-newbtn" title="새 채팅 시작">
+                        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" aria-hidden="true">
+                            <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                        </svg>
+                        새 채팅
+                    </button>
                 </div>
                 <div id="ragSessionList" class="rag-session-list" role="group" aria-label="세션 목록"></div>
                 <p id="ragSessionMsg" class="rag-session-msg"></p>
@@ -144,7 +151,13 @@
             <form id="chatForm" class="chat-input-bar" onsubmit="return false;">
                 <textarea id="chatInput" class="chat-input" rows="1" aria-label="메시지 입력"
                           placeholder="메시지를 입력하세요  (Enter 전송 · Shift+Enter 줄바꿈)"></textarea>
-                <button type="submit" id="chatSendBtn" class="chat-send-btn">전송</button>
+                <button type="submit" id="chatSendBtn" class="chat-send-btn">
+                    전송
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true">
+                        <path d="M2.5 8h10M8.5 4l4 4-4 4" stroke="currentColor" stroke-width="1.6"
+                              stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </form>
             </div>
 

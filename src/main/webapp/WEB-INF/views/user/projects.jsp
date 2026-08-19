@@ -109,7 +109,9 @@
     <main class="main-content">
 
         <header class="page-header">
+            <p class="page-header__eyebrow">Projects</p>
             <h1 class="page-header__title">프로젝트 목록</h1>
+            <p class="page-header__desc">등록된 프로젝트를 조회하고 관리합니다.</p>
         </header>
 
         <!-- 조회 조건 -->
@@ -118,8 +120,19 @@
             <input type="text" id="searchProjectName" name="projectName"
                    class="search-form__input" placeholder="프로젝트명을 입력하세요">
             <div class="search-form__actions">
-                <button type="button" id="btnSearch" class="search-form__btn">조회</button>
-                <button type="button" id="btnCreate" class="search-form__btn">등록</button>
+                <button type="button" id="btnSearch" class="search-form__btn search-form__btn--ghost">
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <circle cx="7.2" cy="7.2" r="4.2" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="m10.4 10.4 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    조회
+                </button>
+                <button type="button" id="btnCreate" class="search-form__btn">
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                    등록
+                </button>
             </div>
         </form>
 
@@ -138,6 +151,12 @@
     <div class="layer-popup__panel" role="dialog" aria-modal="true" aria-labelledby="projectPopupTitle">
         <div class="layer-popup__header">
             <h2 class="layer-popup__title" id="projectPopupTitle">프로젝트 등록</h2>
+            <p class="layer-popup__desc" id="projectPopupDesc">프로젝트 정보를 입력한 뒤 저장하세요.</p>
+            <button type="button" class="layer-popup__close" id="btnPopupClose" aria-label="닫기">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </button>
         </div>
         <div class="layer-popup__body">
             <div class="form-field" id="popupProjectIdField" style="display:none;">
@@ -162,8 +181,8 @@
             </div>
         </div>
         <div class="layer-popup__footer">
-            <button type="button" id="btnPopupSave"   class="search-form__btn">저장</button>
             <button type="button" id="btnPopupCancel" class="search-form__btn search-form__btn--ghost">취소</button>
+            <button type="button" id="btnPopupSave"   class="search-form__btn">저장</button>
         </div>
     </div>
 </div>
@@ -220,6 +239,9 @@
                 promotion:    false,
                 convert_urls: false,
                 plugins:      'lists link table autolink searchreplace charmap',
+                content_style: 'body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, ' +
+                               '"Apple SD Gothic Neo", "Noto Sans KR", sans-serif; font-size: 14px; ' +
+                               'line-height: 1.6; color: #0f172a; }',
                 toolbar:      'undo redo | blocks fontsize | bold italic underline strikethrough forecolor backcolor | ' +
                               'alignleft aligncenter alignright | bullist numlist | table link charmap | removeformat'
             }).then(function (editors) {
@@ -321,6 +343,7 @@
         function openCreatePopup() {
             popupMode = "create";
             $("#projectPopupTitle").text("프로젝트 등록");
+            $("#projectPopupDesc").text("프로젝트 정보를 입력한 뒤 저장하세요.");
             $("#popupProjectIdField").hide();
             $("#popupProjectId").val("");
             $("#popupProjectName").val("");
@@ -335,6 +358,7 @@
         function openEditPopup(project) {
             popupMode = "edit";
             $("#projectPopupTitle").text("프로젝트 수정");
+            $("#projectPopupDesc").text("변경할 내용을 수정한 뒤 저장하세요.");
             // projectId 항목은 화면에 노출하지 않고(숨김 유지), 값만 채워 수정 시 PATCH URL 식별자로 사용한다.
             $("#popupProjectIdField").hide();
             $("#popupProjectId").val(project.projectId);
@@ -430,6 +454,7 @@
 
         $("#btnCreate").on("click", openCreatePopup);
         $("#btnPopupCancel").on("click", closePopup);
+        $("#btnPopupClose").on("click", closePopup);
         $("#projectPopupDim").on("click", closePopup);
         $("#btnPopupSave").on("click", saveProject);
     });

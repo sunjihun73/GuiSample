@@ -2,6 +2,8 @@ package kr.co.jihun.guisample.config;
 
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
+import kr.co.jihun.guisample.filter.KeycloakUserProvisioningFilter;
+import kr.co.jihun.guisample.service.UserMasterService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -12,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
@@ -22,6 +25,7 @@ import org.springframework.security.web.authentication.logout.LogoutSuccessHandl
  *   <li>로그인: {@code /oauth2/authorization/keycloak} → Keycloak 인증 → {@code /login/oauth2/code/keycloak} 콜백</li>
  *   <li>로그아웃: POST {@code /logout} → 로컬 세션 무효화 → Keycloak end_session_endpoint → {@link #POST_LOGOUT_REDIRECT_URI}</li>
  *   <li>CSRF: 기본(세션 저장소) 유지 — JSP 가 meta 태그로 토큰을 내리고 {@code /js/csrf.js} 가 모든 비-GET 요청 헤더에 실어 보낸다.</li>
+ *   <li>사용자 자동 등록: 로그인 후 첫 요청에서 {@link KeycloakUserProvisioningFilter} 가 user_master 에 사용자를 등록한다.</li>
  * </ul>
  *
  * 클라이언트 등록 정보(client-id/secret, issuer-uri)는 {@code application.yaml} 의
@@ -42,7 +46,8 @@ public class SecurityConfig
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   ClientRegistrationRepository clientRegistrationRepository)
+                                                   ClientRegistrationRepository clientRegistrationRepository,
+                                                   UserMasterService userMasterService)
             throws Exception
     {
         http
@@ -66,7 +71,11 @@ public class SecurityConfig
                 .exceptionHandling(ex -> ex
                         .defaultAuthenticationEntryPointFor(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                                SecurityConfig::isAjaxRequest));
+                                SecurityConfig::isAjaxRequest))
+                /* 인가를 통과한 뒤(체인 마지막) 실행 — Keycloak 최초 로그인 사용자를 user_master 에 등록한다.
+                   Boot 의 Filter 빈 자동 등록으로 인한 이중 실행을 피하려고 빈이 아닌 직접 생성으로 넣는다. */
+                .addFilterAfter(new KeycloakUserProvisioningFilter(userMasterService),
+                                AuthorizationFilter.class);
 
         return http.build();
     }

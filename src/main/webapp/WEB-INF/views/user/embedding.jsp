@@ -109,7 +109,9 @@
     <main class="main-content">
 
         <header class="page-header">
+            <p class="page-header__eyebrow">Knowledge Base</p>
             <h1 class="page-header__title">Embedding</h1>
+            <p class="page-header__desc">카테고리를 선택하고 텍스트 파일을 업로드해 지식베이스를 색인합니다.</p>
         </header>
 
         <div class="content-split">
@@ -117,10 +119,24 @@
             <!-- ── 좌측: 카테고리 목록 그리드 ── -->
             <div class="content-split__col">
                 <div class="grid-header">
-                    <span class="grid-header__title">카테고리 목록</span>
+                    <div>
+                        <span class="grid-header__title">카테고리 목록</span>
+                        <p class="grid-header__desc">행을 선택하면 오른쪽 지식파일 목록이 갱신됩니다.</p>
+                    </div>
                     <div class="search-form__actions">
-                        <button type="button" id="btnCategoryRead" class="search-form__btn">조회</button>
-                        <button type="button" id="btnCategoryCreate" class="search-form__btn">등록</button>
+                        <button type="button" id="btnCategoryRead" class="search-form__btn search-form__btn--ghost search-form__btn--sm">
+                            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <circle cx="7.2" cy="7.2" r="4.2" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="m10.4 10.4 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                            조회
+                        </button>
+                        <button type="button" id="btnCategoryCreate" class="search-form__btn search-form__btn--sm">
+                            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        </svg>
+                            등록
+                        </button>
                     </div>
                 </div>
 
@@ -133,10 +149,24 @@
             <!-- ── 우측: 지식파일 목록 그리드 ── -->
             <div class="content-split__col">
                 <div class="grid-header">
-                    <span class="grid-header__title">지식파일 목록</span>
+                    <div>
+                        <span class="grid-header__title">지식파일 목록</span>
+                        <p class="grid-header__desc">선택된 카테고리에 색인된 파일입니다.</p>
+                    </div>
                     <div class="search-form__actions">
-                        <button type="button" id="btnKnowledgeRead"   class="search-form__btn">조회</button>
-                        <button type="button" id="btnKnowledgeCreate" class="search-form__btn">등록</button>
+                        <button type="button" id="btnKnowledgeRead"   class="search-form__btn search-form__btn--ghost search-form__btn--sm">
+                            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <circle cx="7.2" cy="7.2" r="4.2" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="m10.4 10.4 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                            조회
+                        </button>
+                        <button type="button" id="btnKnowledgeCreate" class="search-form__btn search-form__btn--sm">
+                            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        </svg>
+                            등록
+                        </button>
                     </div>
                 </div>
 
@@ -157,6 +187,12 @@
     <div class="layer-popup__panel" role="dialog" aria-modal="true" aria-labelledby="categoryPopupTitle">
         <div class="layer-popup__header">
             <h2 class="layer-popup__title" id="categoryPopupTitle">카테고리 등록</h2>
+            <p class="layer-popup__desc">지식파일을 분류할 카테고리명을 입력하세요.</p>
+            <button type="button" class="layer-popup__close" id="btnCategoryPopupClose" aria-label="닫기">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </button>
         </div>
         <div class="layer-popup__body">
             <div class="form-field">
@@ -166,8 +202,8 @@
             </div>
         </div>
         <div class="layer-popup__footer">
-            <button type="button" id="btnCategoryPopupSave"   class="search-form__btn">저장</button>
             <button type="button" id="btnCategoryPopupCancel" class="search-form__btn search-form__btn--ghost">취소</button>
+            <button type="button" id="btnCategoryPopupSave"   class="search-form__btn">저장</button>
         </div>
     </div>
 </div>
@@ -178,6 +214,12 @@
     <div class="layer-popup__panel" role="dialog" aria-modal="true" aria-labelledby="knowledgePopupTitle">
         <div class="layer-popup__header">
             <h2 class="layer-popup__title" id="knowledgePopupTitle">지식파일 등록</h2>
+            <p class="layer-popup__desc">선택한 카테고리에 텍스트 파일을 업로드해 임베딩합니다.</p>
+            <button type="button" class="layer-popup__close" id="btnKnowledgePopupClose" aria-label="닫기">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </button>
         </div>
         <div class="layer-popup__body">
             <div class="form-field">
@@ -189,13 +231,14 @@
             <div class="form-field">
                 <label for="knowledgeFile" class="form-field__label">텍스트 파일</label>
                 <input type="file" id="knowledgeFile" class="embed-file" accept=".txt,.md,text/*">
+                <p class="form-field__hint">.txt · .md 형식, 최대 10MB 까지 업로드할 수 있습니다.</p>
             </div>
 
             <div id="knowledgePopupResult" class="embed-result" role="status" aria-live="polite"></div>
         </div>
         <div class="layer-popup__footer">
-            <button type="button" id="btnKnowledgePopupUpload" class="search-form__btn">업로드</button>
             <button type="button" id="btnKnowledgePopupCancel" class="search-form__btn search-form__btn--ghost">취소</button>
+            <button type="button" id="btnKnowledgePopupUpload" class="search-form__btn">업로드</button>
         </div>
     </div>
 </div>
@@ -206,6 +249,12 @@
     <div class="layer-popup__panel layer-popup__panel--wide" role="dialog" aria-modal="true" aria-labelledby="chunkPopupTitle">
         <div class="layer-popup__header">
             <h2 class="layer-popup__title" id="chunkPopupTitle">청크 목록</h2>
+            <p class="layer-popup__desc">지식파일이 분할되어 벡터로 저장된 단위입니다.</p>
+            <button type="button" class="layer-popup__close" id="btnChunkPopupCloseX" aria-label="닫기">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </button>
         </div>
         <div class="layer-popup__body">
             <div class="chunk-list-meta" id="chunkPopupMeta" role="status" aria-live="polite"></div>
@@ -387,6 +436,7 @@
 
         $("#btnCategoryCreate").on("click", openCreatePopup);
         $("#btnCategoryPopupCancel").on("click", closePopup);
+        $("#btnCategoryPopupClose").on("click", closePopup);
         $("#categoryPopupDim").on("click", closePopup);
         $("#btnCategoryPopupSave").on("click", saveCategory);
 
@@ -525,6 +575,7 @@
 
         $("#btnKnowledgeCreate").on("click", openKnowledgePopup);
         $("#btnKnowledgePopupCancel").on("click", closeKnowledgePopup);
+        $("#btnKnowledgePopupClose").on("click", closeKnowledgePopup);
         $("#knowledgePopupDim").on("click", closeKnowledgePopup);
         $("#btnKnowledgePopupUpload").on("click", uploadKnowledgeFile);
 
@@ -610,6 +661,7 @@
         });
 
         $("#btnChunkPopupClose").on("click", closeChunkPopup);
+        $("#btnChunkPopupCloseX").on("click", closeChunkPopup);
         $("#chunkPopupDim").on("click", closeChunkPopup);
     });
 </script>
