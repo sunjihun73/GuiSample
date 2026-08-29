@@ -25,6 +25,10 @@
             <if test="fileName != null and fileName != ''">
                 AND kf.file_name LIKE CONCAT('%', #{fileName}, '%')
             </if>
+            <!-- 로그인 사용자 필터 — 컨트롤러가 세션의 user_name 을 createUserId 로 넣어 준다. -->
+            <if test="createUserId != null and createUserId != ''">
+                AND kf.create_user_id = #{createUserId}
+            </if>
         </where>
     </sql>
 

@@ -31,8 +31,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class KnowledgeFileService
 {
-    private static final String DEFAULT_USER_ID = "sunjeehun";
-
     /** 업로드 파일 저장 루트 (요구사항 7.9). .env 의 UPLOAD_FILE_PATH 값을 주입받는다. */
     @Value("${UPLOAD_FILE_PATH}")
     private String uploadDir;
@@ -55,10 +53,25 @@ public class KnowledgeFileService
     /**
      * 특정 지식파일(parent_document_id = file_id)의 청크 목록을 chunk_index 오름차순으로 조회한다.
      *
+     * <p>청크는 Spring AI 의 {@code vector_store} 에 있고 그 테이블에는 사용자 컬럼이 없다.
+     * 그래서 상위 지식파일(knowledge_files)의 소유권을 먼저 확인해 남의 문서 본문이 넘어가지
+     * 않게 한다 — chat_detail 을 chat_master 소유권으로 막는 것과 같은 방식이다.
+     * 소유자가 아니면 빈 목록.
+     *
      * @param parentDocumentId 선택된 지식파일 ID (vector_store 청크 metadata.parent_document_id)
+     * @param userName         로그인 사용자명
      */
-    public List<KnowledgeChunkDTO> selectKnowledgeChunkList(String parentDocumentId)
+    public List<KnowledgeChunkDTO> selectKnowledgeChunkList(String parentDocumentId, String userName)
     {
+        HashMap<String, Object> ownerParam = new HashMap<>();
+        ownerParam.put("fileId", parentDocumentId);
+        ownerParam.put("createUserId", userName);
+
+        if (knowledgeFileMapper.countKnowledgeFile(ownerParam) == 0)
+        {
+            return List.of();
+        }
+
         HashMap<String, Object> param = new HashMap<>();
         param.put("parentDocumentId", parentDocumentId);
         return knowledgeFileMapper.selectKnowledgeChunkList(param);
@@ -79,8 +92,9 @@ public class KnowledgeFileService
      *
      * @param file       업로드된 plain text(UTF-8) 파일
      * @param categoryId 왼쪽 카테고리 그리드에서 선택된 카테고리 ID (metadata.source 및 category_id)
+     * @param userName   로그인 사용자명 — create_user_id 로 저장되며 이후 목록 조회 조건의 기준이 된다
      */
-    public EmbeddingResponse upload(MultipartFile file, String categoryId)
+    public EmbeddingResponse upload(MultipartFile file, String categoryId, String userName)
     {
         // 입력 검증
         if (file == null || file.isEmpty())
@@ -129,8 +143,9 @@ public class KnowledgeFileService
             vo.setFileId(fileId);
             vo.setCategoryId(categoryId);
             vo.setFileName(originalName);
-            vo.setCreateUserId(DEFAULT_USER_ID);
-            vo.setUpdateUserId(DEFAULT_USER_ID);
+            /* create_user_id 가 목록 조회 필터의 기준 — 틀리면 업로드 직후 목록에서 사라진다. */
+            vo.setCreateUserId(userName);
+            vo.setUpdateUserId(userName);
             knowledgeFileMapper.insertKnowledgeFile(vo);
 
             log.info("지식파일 업로드 완료 - fileId={}, categoryId={}, fileName={}, chunkCount={}",

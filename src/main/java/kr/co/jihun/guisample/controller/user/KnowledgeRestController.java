@@ -3,6 +3,7 @@ package kr.co.jihun.guisample.controller.user;
 import kr.co.jihun.guisample.service.KnowledgeFileService;
 import kr.co.jihun.guisample.dto.KnowledgeChunkDTO;
 import kr.co.jihun.guisample.dto.KnowledgeFileDTO;
+import kr.co.jihun.guisample.session.LoginUserSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +17,9 @@ import java.util.Map;
 
 /**
  * 지식파일 목록 REST 엔드포인트.
+ *
+ * <p><b>사용자 귀속</b> — 조회 조건에 들어갈 로그인 사용자명은 이 컨트롤러에서
+ * {@link LoginUserSession} 으로 세션에서 꺼낸다.
  */
 @RestController
 @RequestMapping("/user/knowledge")
@@ -23,6 +27,7 @@ import java.util.Map;
 public class KnowledgeRestController
 {
     private final KnowledgeFileService knowledgeFileService;
+    private final LoginUserSession loginUserSession;
 
     /**
      * 지식파일 목록 조회. 전체 경로: GET /user/knowledge/knowledges/{categoryId}
@@ -44,6 +49,9 @@ public class KnowledgeRestController
         {
             param.put("categoryId", categoryId);
         }
+
+        /* 로그인 사용자 조건 — 총건수와 목록이 같은 조건을 봐야 하므로 count 보다 먼저 넣는다. */
+        param.put("createUserId", loginUserSession.requireUserName());
 
         int totalRecords = knowledgeFileService.countKnowledgeFile(param);
         int totalPages   = totalRecords == 0 ? 0 : (int) Math.ceil((double) totalRecords / rows);
@@ -71,6 +79,8 @@ public class KnowledgeRestController
     @GetMapping("/knowledges/chunks/{parentDocumentId}")
     public List<KnowledgeChunkDTO> knowledgeChunkList(@PathVariable("parentDocumentId") String parentDocumentId)
     {
-        return knowledgeFileService.selectKnowledgeChunkList(parentDocumentId);
+        /* 소유 파일이 아니면 빈 목록 — knowledge_files 소유권으로 vector_store 접근을 막는다. */
+        return knowledgeFileService.selectKnowledgeChunkList(
+                parentDocumentId, loginUserSession.requireUserName());
     }
 }

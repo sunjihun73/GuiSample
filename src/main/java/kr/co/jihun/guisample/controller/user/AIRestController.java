@@ -11,6 +11,7 @@ import kr.co.jihun.guisample.dto.SessionRow;
 import kr.co.jihun.guisample.service.AIService;
 import kr.co.jihun.guisample.service.ChatService;
 import kr.co.jihun.guisample.service.KnowledgeFileService;
+import kr.co.jihun.guisample.session.LoginUserSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
@@ -39,6 +40,13 @@ import java.util.stream.Collectors;
 /**
  * Spring AI 기반 RAG 기능 REST 엔드포인트.
  * <p>세션/대화 저장(chat_master/chat_detail) 엔드포인트를 함께 제공한다.
+ *
+ * <p><b>사용자 귀속</b> — chat_master 조회 조건에 실을 로그인 사용자명은 이 컨트롤러에서
+ * {@link LoginUserSession} 으로 세션에서 꺼낸다.
+ *
+ * <p><b>주의</b> — {@code /docs} 의 저장 로직은 {@link Schedulers#boundedElastic()} 의
+ * 별도 스레드에서 돈다. 그 스레드에는 요청 컨텍스트가 없어 세션 프록시를 읽을 수 없으므로,
+ * 사용자명은 반드시 <b>컨트롤러 메서드 본문(요청 스레드)에서 미리 꺼내</b> 람다에 넘긴다.
  */
 @RestController
 @RequestMapping("/user/rag")
@@ -49,6 +57,7 @@ public class AIRestController
     private final AIService aiService;
     private final ChatService chatService;
     private final KnowledgeFileService knowledgeFileService;
+    private final LoginUserSession loginUserSession;
 
     // ------------------------------------------------------------------
     // A. 세션 목록
@@ -67,13 +76,17 @@ public class AIRestController
             @RequestParam(defaultValue = "100") int rows)
     {
         HashMap<String, Object> param = new HashMap<>();
+
+        /* 로그인 사용자 조건 — count 와 목록이 같은 조건을 봐야 하므로 countSessions 보다 먼저 넣는다.
+           (이전에는 count 이후에 넣어 총건수만 전체 세션을 세고 있었다.) */
+        param.put("chatOwnerUserId", loginUserSession.requireUserName());
+
         int totalRecords = chatService.countSessions(param);
         int totalPages   = totalRecords == 0 ? 0 : (int) Math.ceil((double) totalRecords / rows);
 
         // 페이징 사용 시 startRow/pageSize 를 반드시 함께 세팅 (mapper LIMIT/OFFSET 가드 대응)
         param.put("startRow", (page - 1) * rows);
         param.put("pageSize", rows);
-        param.put("chatOwnerUserId", "sunjeehun");
 
         List<ChatMasterDTO> list = chatService.selectSessions(param);
         List<SessionRow> sessionRows = list.stream()
@@ -108,7 +121,9 @@ public class AIRestController
         try
         {
             Object title = body == null ? null : body.get("title");
-            ChatMasterDTO created = chatService.createSession(title == null ? null : title.toString());
+            /* chat_owner_user_id 에 세션 사용자명을 찍어야 생성 직후 목록 조회 조건에 걸린다. */
+            ChatMasterDTO created = chatService.createSession(
+                    title == null ? null : title.toString(), loginUserSession.requireUserName());
             return SessionCreateResponse.builder()
                     .success(true)
                     .sessionId(created.getChatSessionId())
@@ -138,7 +153,8 @@ public class AIRestController
     @GetMapping(value = "/sessions/{sessionId}/messages", produces = MediaType.APPLICATION_JSON_VALUE)
     public MessageListResponse messages(@PathVariable String sessionId)
     {
-        List<ChatDetailDTO> list = chatService.selectMessages(sessionId);
+        /* 소유 세션이 아니면 빈 목록 — chat_master 소유권으로 chat_detail 접근을 막는다. */
+        List<ChatDetailDTO> list = chatService.selectMessages(sessionId, loginUserSession.requireUserName());
         List<MessageRow> messageRows = list.stream()
                 .map(d -> MessageRow.builder()
                         .role(d.getRole())
@@ -177,6 +193,10 @@ public class AIRestController
         String categoryId = str(body, "categoryId");
         String sessionId  = str(body, "sessionId");
 
+        /* 세션 사용자명은 반드시 여기(요청 스레드)에서 꺼낸다.
+           아래 저장 람다는 boundedElastic 스레드에서 돌아 요청 컨텍스트가 없다. */
+        String userName = loginUserSession.requireUserName();
+
         if (query == null || query.isBlank())
         {
             return Flux.just("질문을 입력해 주세요.");
@@ -209,7 +229,7 @@ public class AIRestController
         Mono<Void> saveUser = Mono.<Void>fromRunnable(() -> {
             try
             {
-                chatService.saveUserMessage(sessionId, query);
+                chatService.saveUserMessage(sessionId, query, userName);
             }
             catch (Exception e)
             {
@@ -222,14 +242,14 @@ public class AIRestController
             try
             {
                 chatService.saveAssistantMessage(sessionId, answer.toString(),
-                        model.get(), promptTokens.get(), completionTokens.get());
+                        model.get(), promptTokens.get(), completionTokens.get(), userName);
             }
             catch (Exception e)
             {
                 log.error("assistant 메시지 저장 실패 (sessionId={})", sessionId, e);
             }
             // 첫 질문 기반 세션 제목 자동 변경(제목이 기본값일 때만 1회). 실패해도 스트림 영향 없음.
-            autoRenameTitle(sessionId, query);
+            autoRenameTitle(sessionId, query, userName);
         }).subscribeOn(Schedulers.boundedElastic()).thenMany(Flux.<String>empty());
 
         return saveUser.thenMany(textStream).concatWith(saveAssistantTail);
@@ -241,18 +261,18 @@ public class AIRestController
      * 실제 갱신은 트랜잭션 내에서 기본값을 재확인해 반영한다(레이스 안전).
      * 모든 실패는 로그만 남기고 스트림/응답에 영향을 주지 않는다.
      */
-    private void autoRenameTitle(String sessionId, String query)
+    private void autoRenameTitle(String sessionId, String query, String userName)
     {
         try
         {
-            ChatMasterDTO session = chatService.selectSession(sessionId);
+            ChatMasterDTO session = chatService.selectSession(sessionId, userName);
             if (session == null || !ChatService.DEFAULT_TITLE.equals(session.getChatTitleName()))
             {
-                // 세션 없음 or 이미 수동 변경됨 → LLM 호출 없이 종료
+                // 세션 없음/소유자 아님 or 이미 수동 변경됨 → LLM 호출 없이 종료
                 return;
             }
             String title = aiService.summarizeTitle(query);
-            chatService.autoRenameTitleIfDefault(sessionId, title);
+            chatService.autoRenameTitleIfDefault(sessionId, title, userName);
         }
         catch (Exception e)
         {
@@ -371,6 +391,7 @@ public class AIRestController
     public EmbeddingResponse embedding(@RequestParam("file") MultipartFile file,
                                        @RequestParam("categoryId") String categoryId)
     {
-        return knowledgeFileService.upload(file, categoryId);
+        /* create_user_id 에 세션 사용자명을 찍어야 업로드 직후 지식파일 목록 조회 조건에 걸린다. */
+        return knowledgeFileService.upload(file, categoryId, loginUserSession.requireUserName());
     }
 }

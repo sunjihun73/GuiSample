@@ -18,6 +18,7 @@ JSP + CSS + Vanilla JS 기반 RAG 기능 UI 구현.
 4. **fetch API + async/await.** jQuery 없는 vanilla JS. 에러는 사용자에게 표시(console.log만 X).
 5. **JSP에서 EL과 JSTL을 사용.** `<%= %>` 스크립틀릿 지양. taglib 선언은 페이지 상단에 모아둠.
 6. **XSS 방지.** 사용자 입력을 화면에 표시할 때 `<c:out value="${...}"/>` 또는 textContent 사용. innerHTML로 사용자 입력을 넣지 않는다.
+7. **jsp javascript 변수선언.** javascript 변수는 let 를 이용하여 선언한다.  
 
 ## 입력
 

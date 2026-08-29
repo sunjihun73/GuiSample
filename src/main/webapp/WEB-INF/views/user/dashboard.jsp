@@ -1,9 +1,19 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="org.springframework.web.util.HtmlUtils" %>
+<%@ page import="kr.co.jihun.guisample.dto.SessionUser" %>
 <%
-    /* Keycloak preferred_username — 상단바 표시용. HTML 이스케이프 후 출력한다. */
-    java.security.Principal principal = request.getUserPrincipal();
-    String loginName = (principal != null) ? HtmlUtils.htmlEscape(principal.getName()) : "";
+    /* 상단바 표시 이름 — 로그인 직후 필터가 세션에 넣어 둔 SessionUser 의 display_name 을 쓴다.
+       display_name 이 비어 있으면 user_name 으로 대체한다(상단바가 빈 칸이 되지 않도록).
+       JSP EL 은 자동 이스케이프가 없으므로 출력 전에 직접 이스케이프한다. */
+    SessionUser loginUser = (SessionUser) session.getAttribute(SessionUser.SESSION_KEY);
+
+    String rawName = (loginUser != null) ? loginUser.getDisplayName() : null;
+    if (rawName == null || rawName.isBlank())
+    {
+        rawName = (loginUser != null) ? loginUser.getUserName() : null;
+    }
+
+    String loginDisplayName = (rawName != null) ? HtmlUtils.htmlEscape(rawName) : "";
 %>
 <!DOCTYPE html>
 <html lang="ko">
@@ -19,7 +29,7 @@
 <header class="topbar">
     <a href="/" class="topbar__brand">기술테스트 시스템</a>
     <div class="topbar__user">
-        <span class="topbar__username"><%= loginName %></span>
+        <span class="topbar__username"><%= loginDisplayName %></span>
         <form action="${pageContext.request.contextPath}/logout" method="post">
             <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
             <button type="submit" class="topbar__logout">로그아웃</button>
