@@ -18,22 +18,22 @@
     'use strict';
 
     function metaContent(name) {
-        var el = document.querySelector('meta[name="' + name + '"]');
+        let el = document.querySelector('meta[name="' + name + '"]');
         return el ? el.getAttribute('content') : null;
     }
 
-    var token  = metaContent('_csrf');
-    var header = metaContent('_csrf_header');
+    let token  = metaContent('_csrf');
+    let header = metaContent('_csrf_header');
 
-    /* fetch 용 — var headers = Object.assign({...}, window.csrfHeader()); */
+    /* fetch 용 — let headers = Object.assign({...}, window.csrfHeader()); */
     window.csrfHeader = function () {
-        var headers = {};
+        let headers = {};
         if (token && header) headers[header] = token;
         return headers;
     };
 
     function needsToken(method) {
-        var m = (method || 'GET').toUpperCase();
+        let m = (method || 'GET').toUpperCase();
         return m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS' && m !== 'TRACE';
     }
 

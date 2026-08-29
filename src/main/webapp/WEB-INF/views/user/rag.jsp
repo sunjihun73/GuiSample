@@ -173,15 +173,15 @@
 <script>
     /* ── 사이드바 토글 (다른 페이지와 동일) ───────────────── */
     $(function () {
-        var $sidebar = $('#sidebar');
-        var STORAGE_KEY = 'sidebar_collapsed';
+        let $sidebar = $('#sidebar');
+        let STORAGE_KEY = 'sidebar_collapsed';
 
         if (sessionStorage.getItem(STORAGE_KEY) === 'true') {
             $sidebar.addClass('collapsed');
         }
 
         $('#toggleBtn').on('click', function () {
-            var isCollapsed = $sidebar.toggleClass('collapsed').hasClass('collapsed');
+            let isCollapsed = $sidebar.toggleClass('collapsed').hasClass('collapsed');
             sessionStorage.setItem(STORAGE_KEY, isCollapsed);
         });
     });
@@ -190,10 +190,10 @@
     $(function () {
         /* 백엔드 응답: GET /user/category/categories?page=1&rows=1000
            →  200  { page, total, records, rows: [{ categoryId, categoryName, … }] } */
-        var CATEGORIES_URL = '${pageContext.request.contextPath}/user/category/categories?page=1&rows=1000';
+        let CATEGORIES_URL = '${pageContext.request.contextPath}/user/category/categories?page=1&rows=1000';
 
-        var $list = $('#ragCatList');
-        var $msg  = $('#ragCatMsg');
+        let $list = $('#ragCatList');
+        let $msg  = $('#ragCatMsg');
 
         /* 클릭한 버튼만 선택 표시 (단일 선택) */
         $list.on('click', '.rag-cat-btn', function () {
@@ -208,13 +208,13 @@
             dataType: 'json',
             headers:  { 'Accept': 'application/json' }
         }).done(function (data) {
-            var rows = data && Array.isArray(data.rows) ? data.rows : [];
+            let rows = data && Array.isArray(data.rows) ? data.rows : [];
 
             $.each(rows, function (i, cat) {
                 if (!cat || !cat.categoryId) return;   /* continue */
 
                 /* text 옵션으로 넣으면 jQuery가 이스케이프 → XSS 방지 */
-                var $btn = $('<button>', {
+                let $btn = $('<button>', {
                     type:           'button',
                     'class':        'rag-cat-btn',
                     'aria-pressed': 'false',
@@ -237,35 +237,35 @@
        세션 목록/생성/복원과 스트리밍은 currentSessionId 상태를 공유하므로
        하나의 초기화 블록으로 통합한다. (스트리밍만 fetch 유지 — 아래 주석 참고) */
     $(function () {
-        var CONTEXT      = '${pageContext.request.contextPath}';
+        let CONTEXT      = '${pageContext.request.contextPath}';
         /* D: POST /user/rag/docs  body { query, categoryId?, sessionId? }
            →  200  text/event-stream  (data: 토큰 …)  답변 토큰 스트림 */
-        var DOCS_URL     = CONTEXT + '/user/rag/docs';
+        let DOCS_URL     = CONTEXT + '/user/rag/docs';
         /* A: GET  /user/rag/sessions?page=1&rows=100  →  { page,total,records,rows:[{sessionId,title,createDate}] }
            B: POST /user/rag/sessions  body {title?}   →  { success,sessionId,title,message }
            C: GET  /user/rag/sessions/{id}/messages    →  { sessionId, rows:[{role,content,model,promptTokens,completionTokens,createDate}] } */
-        var SESSIONS_URL = CONTEXT + '/user/rag/sessions';
+        let SESSIONS_URL = CONTEXT + '/user/rag/sessions';
 
-        var GREETING = '안녕하세요. 무엇을 도와드릴까요? 궁금한 내용을 입력해 주세요.';
-        var DEFAULT_TITLE = '새로운채팅';   /* 서버 기본 세션 제목 — 자동 요약 변경 트리거 판별용 */
+        let GREETING = '안녕하세요. 무엇을 도와드릴까요? 궁금한 내용을 입력해 주세요.';
+        let DEFAULT_TITLE = '새로운채팅';   /* 서버 기본 세션 제목 — 자동 요약 변경 트리거 판별용 */
 
-        var $messages    = $('#chatMessages');
-        var $form        = $('#chatForm');
-        var $input       = $('#chatInput');
-        var $sendBtn     = $('#chatSendBtn');
+        let $messages    = $('#chatMessages');
+        let $form        = $('#chatForm');
+        let $input       = $('#chatInput');
+        let $sendBtn     = $('#chatSendBtn');
 
-        var $sessionList = $('#ragSessionList');
-        var $sessionMsg  = $('#ragSessionMsg');
-        var $newBtn      = $('#ragSessionNewBtn');
+        let $sessionList = $('#ragSessionList');
+        let $sessionMsg  = $('#ragSessionMsg');
+        let $newBtn      = $('#ragSessionNewBtn');
 
         /* 현재 활성 세션 ID (없으면 null). 요구4에서 전송 시 자동 생성. */
-        var currentSessionId = null;
+        let currentSessionId = null;
 
         /* $.ajax(jqXHR)를 표준 Promise로 감싸 실패 시 Error(message) 로 정규화한다.
            → async/await 의 catch(e) 에서 e.message 를 일관되게 사용하기 위함. */
         function ajaxJson(options) {
             return Promise.resolve($.ajax(options)).catch(function (jqXHR) {
-                var msg = (jqXHR && jqXHR.status)
+                let msg = (jqXHR && jqXHR.status)
                         ? ('HTTP ' + jqXHR.status)
                         : ((jqXHR && jqXHR.statusText) || '요청 실패');
                 throw new Error(msg);
@@ -275,8 +275,8 @@
         /* 메시지 말풍선 추가 — 텍스트는 text()로 삽입(XSS 방지).
            말풍선(.chat-bubble) jQuery 객체를 반환해 스트리밍 토큰을 이어붙일 수 있게 한다. */
         function appendMessage(role, text) {
-            var $bubble = $('<div>', { 'class': 'chat-bubble', text: text });
-            var $row = $('<div>', { 'class': 'chat-msg chat-msg--' + role }).append($bubble);
+            let $bubble = $('<div>', { 'class': 'chat-bubble', text: text });
+            let $row = $('<div>', { 'class': 'chat-msg chat-msg--' + role }).append($bubble);
 
             $messages.append($row);
             scrollToBottom();
@@ -285,10 +285,10 @@
 
         /* 타이핑 인디케이터 표시/제거 */
         function showTyping() {
-            var $typing = $('<div>', { 'class': 'chat-typing' })
+            let $typing = $('<div>', { 'class': 'chat-typing' })
                 .append($('<span>'), $('<span>'), $('<span>'));
-            var $bubble = $('<div>', { 'class': 'chat-bubble' }).append($typing);
-            var $row = $('<div>', { 'class': 'chat-msg chat-msg--bot', id: 'chatTyping' }).append($bubble);
+            let $bubble = $('<div>', { 'class': 'chat-bubble' }).append($typing);
+            let $row = $('<div>', { 'class': 'chat-msg chat-msg--bot', id: 'chatTyping' }).append($bubble);
 
             $messages.append($row);
             scrollToBottom();
@@ -309,7 +309,7 @@
 
         /* 좌측 패널에서 선택된 카테고리 ID 반환 ("전체"면 빈 문자열) */
         function getSelectedCategoryId() {
-            var $sel = $('#ragCatList .rag-cat-btn.is-selected');
+            let $sel = $('#ragCatList .rag-cat-btn.is-selected');
             return $sel.length ? ($sel.attr('data-category-id') || '') : '';
         }
 
@@ -323,22 +323,22 @@
         /* createDate 보기 좋게 — "2026-07-08 10:11:12.0" → "2026-07-08 10:11:12" (소수부 절삭) */
         function formatDate(s) {
             if (!s) return '';
-            var t = String(s);
-            var dot = t.indexOf('.');
+            let t = String(s);
+            let dot = t.indexOf('.');
             return dot > -1 ? t.slice(0, dot) : t;
         }
 
         /* ── 세션 항목 렌더 (prepend=true 시 목록 최상단에 추가) ── */
         function renderSessionItem(session, prepend) {
-            var $title = $('<span>', {
+            let $title = $('<span>', {
                 'class': 'rag-session-item__title',
                 text:    session.title || '새로운채팅'   /* XSS 방지 */
             });
-            var $date = $('<span>', {
+            let $date = $('<span>', {
                 'class': 'rag-session-item__date',
                 text:    formatDate(session.createDate)
             });
-            var $item = $('<button>', { type: 'button', 'class': 'rag-session-item' })
+            let $item = $('<button>', { type: 'button', 'class': 'rag-session-item' })
                 .attr('data-session-id', session.sessionId)
                 .append($title, $date);
 
@@ -361,13 +361,13 @@
         /* A: 세션 목록 로딩 (페이지 로드 시). 목록 있으면 최신(최상단) 세션 자동 활성 + 대화 복원. */
         async function loadSessions() {
             try {
-                var data = await ajaxJson({
+                let data = await ajaxJson({
                     url:      SESSIONS_URL + '?page=1&rows=100',
                     type:     'GET',
                     dataType: 'json',
                     headers:  { 'Accept': 'application/json' }
                 });
-                var rows = data && Array.isArray(data.rows) ? data.rows : [];
+                let rows = data && Array.isArray(data.rows) ? data.rows : [];
 
                 $sessionList.empty();
                 $.each(rows, function (i, s) {
@@ -391,7 +391,7 @@
 
         /* B: 새 세션 생성 → 목록 최상단 추가 + 활성화. 생성된 sessionId 반환. */
         async function createSession() {
-            var data = await ajaxJson({
+            let data = await ajaxJson({
                 url:         SESSIONS_URL,
                 type:        'POST',
                 contentType: 'application/json',
@@ -417,13 +417,13 @@
         /* C: 세션 대화 복원 → 채팅창을 해당 대화로 교체. assistant → bot 매핑. */
         async function loadMessages(sessionId) {
             try {
-                var data = await ajaxJson({
+                let data = await ajaxJson({
                     url:      SESSIONS_URL + '/' + encodeURIComponent(sessionId) + '/messages',
                     type:     'GET',
                     dataType: 'json',
                     headers:  { 'Accept': 'application/json' }
                 });
-                var rows = data && Array.isArray(data.rows) ? data.rows : [];
+                let rows = data && Array.isArray(data.rows) ? data.rows : [];
 
                 $messages.empty();
                 if (!rows.length) {
@@ -432,7 +432,7 @@
                     return;
                 }
                 $.each(rows, function (i, m) {
-                    var cls = (m.role === 'assistant') ? 'bot' : 'user';   /* 역할 매핑 */
+                    let cls = (m.role === 'assistant') ? 'bot' : 'user';   /* 역할 매핑 */
                     appendMessage(cls, m.content || '');
                 });
                 scrollToBottom();
@@ -444,7 +444,7 @@
 
         /* sessionId 로 목록 항목 jQuery 객체 찾기(속성 선택자 대신 순회 — 값 안전). 없으면 null. */
         function getSessionItem(sessionId) {
-            var $found = null;
+            let $found = null;
             $sessionList.find('.rag-session-item').each(function () {
                 if ($(this).attr('data-session-id') === sessionId) {
                     $found = $(this);
@@ -456,14 +456,14 @@
 
         /* A 재조회로 특정 세션의 최신 title 조회. 없으면 null. */
         async function fetchSessionTitle(sessionId) {
-            var data = await ajaxJson({
+            let data = await ajaxJson({
                 url:      SESSIONS_URL + '?page=1&rows=100',
                 type:     'GET',
                 dataType: 'json',
                 headers:  { 'Accept': 'application/json' }
             });
-            var rows = data && Array.isArray(data.rows) ? data.rows : [];
-            for (var i = 0; i < rows.length; i++) {
+            let rows = data && Array.isArray(data.rows) ? data.rows : [];
+            for (let i = 0; i < rows.length; i++) {
                 if (rows[i] && rows[i].sessionId === sessionId) return rows[i].title || '';
             }
             return null;
@@ -475,21 +475,21 @@
              활성 선택 상태/채팅창은 건드리지 않는다. 지연 재조회 2회(1초 뒤, 여전히 기본값이면 3초 뒤). */
         function refreshSessionTitle(sessionId) {
             if (!sessionId) return;
-            var $item = getSessionItem(sessionId);
-            var $titleEl = $item ? $item.find('.rag-session-item__title') : null;
+            let $item = getSessionItem(sessionId);
+            let $titleEl = $item ? $item.find('.rag-session-item__title') : null;
             if (!$titleEl || !$titleEl.length || $titleEl.text() !== DEFAULT_TITLE) return;   /* 기본값 아니면 조회 불필요 */
 
-            var delays = [1000, 3000];
-            var idx = 0;
+            let delays = [1000, 3000];
+            let idx = 0;
 
             function attempt() {
                 setTimeout(async function () {
                     /* 재조회 직전에도 여전히 기본값일 때만 진행(중간에 반영/삭제됐으면 종료) */
-                    var $curItem = getSessionItem(sessionId);
-                    var $curTitleEl = $curItem ? $curItem.find('.rag-session-item__title') : null;
+                    let $curItem = getSessionItem(sessionId);
+                    let $curTitleEl = $curItem ? $curItem.find('.rag-session-item__title') : null;
                     if (!$curTitleEl || !$curTitleEl.length || $curTitleEl.text() !== DEFAULT_TITLE) return;
                     try {
-                        var title = await fetchSessionTitle(sessionId);
+                        let title = await fetchSessionTitle(sessionId);
                         if (title && title !== DEFAULT_TITLE) {
                             $curTitleEl.text(title);   /* 항목 텍스트만 갱신(XSS 방지: text()) */
                             return;                     /* 반영 완료 → 재시도 중단 */
@@ -512,19 +512,19 @@
         async function streamAnswer(query, onToken) {
             /* 카테고리 선택 시 categoryId를 함께 전송 — 서버가 metadata 필터로 사용.
                "전체"(빈 값)면 필드를 생략하여 전체 벡터 검색. */
-            var payload = { query: query };
-            var categoryId = getSelectedCategoryId();
+            let payload = { query: query };
+            let categoryId = getSelectedCategoryId();
             if (categoryId) payload.categoryId = categoryId;
             /* 활성 세션 ID 전송 — 서버가 대화 저장에 사용 (요구5) */
             if (currentSessionId) payload.sessionId = currentSessionId;
 
             /* CSRF 토큰 헤더를 함께 실어야 Spring Security 를 통과한다 (/js/csrf.js). */
-            var headers = Object.assign({
+            let headers = Object.assign({
                 'Content-Type': 'application/json',
                 'Accept':       'text/event-stream'
             }, window.csrfHeader());
 
-            var res = await fetch(DOCS_URL, {
+            let res = await fetch(DOCS_URL, {
                 method:  'POST',
                 headers: headers,
                 body:    JSON.stringify(payload)
@@ -534,22 +534,22 @@
             if (!res.ok)   throw new Error('HTTP ' + res.status);
             if (!res.body) throw new Error('스트림을 지원하지 않는 브라우저입니다.');
 
-            var reader  = res.body.getReader();
-            var decoder = new TextDecoder('utf-8');
-            var buffer  = '';
+            let reader  = res.body.getReader();
+            let decoder = new TextDecoder('utf-8');
+            let buffer  = '';
 
             while (true) {
-                var chunk = await reader.read();
+                let chunk = await reader.read();
                 if (chunk.done) break;
 
                 buffer += decoder.decode(chunk.value, { stream: true });
 
                 /* 이벤트 경계는 빈 줄(\n\n). 마지막 미완성 조각은 버퍼에 남긴다. */
-                var events = buffer.split('\n\n');
+                let events = buffer.split('\n\n');
                 buffer = events.pop();
 
                 $.each(events, function (i, evt) {
-                    var dataLines = [];
+                    let dataLines = [];
                     $.each(evt.split('\n'), function (j, line) {
                         if (line.indexOf('data:') === 0) {
                             dataLines.push(line.slice(5));
@@ -560,8 +560,20 @@
             }
         }
 
+        /* 전송 재진입 가드 — 같은 메시지가 두 번 나가는 것을 마지막 단계에서 한 번 더 막는다. */
+        let sending = false;
         async function handleSend() {
-            var text = $.trim($input.val());
+            if (sending) return;
+            sending = true;
+            try {
+                await doSend();
+            } finally {
+                sending = false;
+            }
+        }
+
+        async function doSend() {
+            let text = $.trim($input.val());
             if (!text) return;
 
             /* 요구4: 활성 세션이 없으면 먼저 "새로운채팅" 세션을 자동 생성해 귀속.
@@ -579,7 +591,7 @@
             }
 
             /* 이 메시지가 귀속된 세션 — 스트리밍 중 세션 전환에도 안전하게 캡처 */
-            var sendSessionId = currentSessionId;
+            let sendSessionId = currentSessionId;
 
             appendMessage('user', text);
             $input.val('');
@@ -589,7 +601,7 @@
             $sendBtn.prop('disabled', true);
             showTyping();
 
-            var $bubble = null;
+            let $bubble = null;
             try {
                 await streamAnswer(text, function (token) {
                     if (!$bubble) {
@@ -628,12 +640,29 @@
         });
         $input.on('input', autoGrow);
 
+        /* IME(한글) 조합 상태 추적.
+           macOS Chrome 은 조합 중 Enter 로 keydown 을 두 번 보낸다.
+             1) 조합 확정용 Enter (isComposing=true) → 여기서 전송하면 입력창을 비운 직후
+                compositionend 가 확정 문자를 다시 써넣어 텍스트가 되살아난다
+             2) 전송용 Enter (isComposing=false) → 되살아난 텍스트를 또 전송 = 중복 전송
+           따라서 1) 은 반드시 무시해야 한다. */
+        let isComposing = false;
+        $input.on('compositionstart', function () { isComposing = true;  });
+        $input.on('compositionend',   function () { isComposing = false; });
+
         /* Enter 전송, Shift+Enter 줄바꿈 */
         $input.on('keydown', function (e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
+            if (e.key !== 'Enter' || e.shiftKey) return;
+
+            /* jQuery 이벤트 객체는 isComposing 을 복사하지 않으므로 originalEvent 에서 읽는다.
+               keyCode 229 는 IME 처리 중임을 뜻하는 레거시 신호(Windows Chrome 등). */
+            let oe = e.originalEvent;
+            if (isComposing || (oe && oe.isComposing) || e.which === 229) {
+                return; /* 조합 확정용 Enter — 전송하지 않는다 */
             }
+
+            e.preventDefault();
+            handleSend();
         });
 
         /* 요구3: "새 채팅" → 새 세션 생성 + 채팅창 초기화 + 목록 상단 추가·활성화 */
@@ -652,7 +681,7 @@
 
         /* 요구6: 세션 항목 클릭 → 활성 전환 + 대화 복원 */
         $sessionList.on('click', '.rag-session-item', async function () {
-            var sid = $(this).attr('data-session-id');
+            let sid = $(this).attr('data-session-id');
             if (!sid || sid === currentSessionId) return;
             setActiveSession(sid);
             await loadMessages(sid);

@@ -204,9 +204,9 @@
 
 <script>
     (function () {
-        var sidebar   = document.getElementById('sidebar');
-        var toggleBtn = document.getElementById('toggleBtn');
-        var STORAGE_KEY = 'sidebar_collapsed';
+        let sidebar   = document.getElementById('sidebar');
+        let toggleBtn = document.getElementById('toggleBtn');
+        let STORAGE_KEY = 'sidebar_collapsed';
 
         /* 저장된 상태 복원 */
         if (sessionStorage.getItem(STORAGE_KEY) === 'true') {
@@ -214,7 +214,7 @@
         }
 
         toggleBtn.addEventListener('click', function () {
-            var isCollapsed = sidebar.classList.toggle('collapsed');
+            let isCollapsed = sidebar.classList.toggle('collapsed');
             sessionStorage.setItem(STORAGE_KEY, isCollapsed);
         });
     })();

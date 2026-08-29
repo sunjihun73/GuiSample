@@ -198,29 +198,29 @@
 
 <script>
     (function () {
-        var sidebar   = document.getElementById('sidebar');
-        var toggleBtn = document.getElementById('toggleBtn');
-        var STORAGE_KEY = 'sidebar_collapsed';
+        let sidebar   = document.getElementById('sidebar');
+        let toggleBtn = document.getElementById('toggleBtn');
+        let STORAGE_KEY = 'sidebar_collapsed';
 
         if (sessionStorage.getItem(STORAGE_KEY) === 'true') {
             sidebar.classList.add('collapsed');
         }
 
         toggleBtn.addEventListener('click', function () {
-            var isCollapsed = sidebar.classList.toggle('collapsed');
+            let isCollapsed = sidebar.classList.toggle('collapsed');
             sessionStorage.setItem(STORAGE_KEY, isCollapsed);
         });
     })();
 
     $(function () {
-        var listUrl = '${pageContext.request.contextPath}/user/project/projects';
+        let listUrl = '${pageContext.request.contextPath}/user/project/projects';
 
         /* ── 프로젝트 설명 TinyMCE (팝업 최초 오픈 시 1회 초기화 후 재사용) ── */
-        var TINYMCE_BASE = '${pageContext.request.contextPath}/tinymce';
+        let TINYMCE_BASE = '${pageContext.request.contextPath}/tinymce';
 
-        var descEditor        = null;    // 초기화 완료된 TinyMCE Editor 인스턴스
-        var descEditorLoading = false;   // 중복 초기화 방지
-        var pendingDescHtml   = '';      // 에디터 초기화 완료 전 적용 대기 HTML
+        let descEditor        = null;    // 초기화 완료된 TinyMCE Editor 인스턴스
+        let descEditorLoading = false;   // 중복 초기화 방지
+        let pendingDescHtml   = '';      // 에디터 초기화 완료 전 적용 대기 HTML
 
         /* 팝업이 display:none 인 동안 초기화하면 iframe 크기 계산이 깨지므로
            팝업이 열린(is-open) 뒤 최초 1회만 초기화한다. */
@@ -336,9 +336,9 @@
         });
 
         /* ── 프로젝트 등록/수정 레이어 팝업 ── */
-        var saveUrl   = '${pageContext.request.contextPath}/user/project/projects';
-        var $popup    = $("#projectPopup");
-        var popupMode = "create";   // "create" | "edit"
+        let saveUrl   = '${pageContext.request.contextPath}/user/project/projects';
+        let $popup    = $("#projectPopup");
+        let popupMode = "create";   // "create" | "edit"
 
         function openCreatePopup() {
             popupMode = "create";
@@ -375,8 +375,8 @@
         }
 
         function saveProject() {
-            var projectName      = $.trim($("#popupProjectName").val());
-            var projectOwnerName = $.trim($("#popupProjectOwnerName").val());
+            let projectName      = $.trim($("#popupProjectName").val());
+            let projectOwnerName = $.trim($("#popupProjectOwnerName").val());
 
             if (projectName === "") {
                 alert("프로젝트명을 입력하세요.");
@@ -389,7 +389,7 @@
                 return;
             }
 
-            var ajaxUrl, ajaxType;
+            let ajaxUrl, ajaxType;
             if (popupMode === "edit") {
                 ajaxUrl  = saveUrl + "/" + encodeURIComponent($("#popupProjectId").val());
                 ajaxType = "PATCH";
@@ -431,8 +431,8 @@
         //  조회 실패 시 팝업을 열지 않음 — UPDATE가 description을 무조건 SET 하므로
         //  미로드 상태로 저장하면 기존 설명이 빈 값으로 덮어써지는 유실이 생긴다.)
         $("#projectGrid").on("click", ".btn-detail", function () {
-            var $btn  = $(this);
-            var rowId = $btn.data("id");
+            let $btn  = $(this);
+            let rowId = $btn.data("id");
 
             $btn.prop("disabled", true);
 

@@ -279,16 +279,16 @@
 <script>
     /* ── 사이드바 토글 (다른 페이지와 동일) ───────────────── */
     (function () {
-        var sidebar   = document.getElementById('sidebar');
-        var toggleBtn = document.getElementById('toggleBtn');
-        var STORAGE_KEY = 'sidebar_collapsed';
+        let sidebar   = document.getElementById('sidebar');
+        let toggleBtn = document.getElementById('toggleBtn');
+        let STORAGE_KEY = 'sidebar_collapsed';
 
         if (sessionStorage.getItem(STORAGE_KEY) === 'true') {
             sidebar.classList.add('collapsed');
         }
 
         toggleBtn.addEventListener('click', function () {
-            var isCollapsed = sidebar.classList.toggle('collapsed');
+            let isCollapsed = sidebar.classList.toggle('collapsed');
             sessionStorage.setItem(STORAGE_KEY, isCollapsed);
         });
     })();
@@ -302,14 +302,14 @@
 
 <script>
     $(function () {
-        var listUrl          = '${pageContext.request.contextPath}/user/category/categories';
-        var knowledgeListUrl = '${pageContext.request.contextPath}/user/knowledge/knowledges';
-        var chunkListUrl     = '${pageContext.request.contextPath}/user/knowledge/knowledges/chunks';
-        var uploadUrl        = '${pageContext.request.contextPath}/user/rag/embedding';
+        let listUrl          = '${pageContext.request.contextPath}/user/category/categories';
+        let knowledgeListUrl = '${pageContext.request.contextPath}/user/knowledge/knowledges';
+        let chunkListUrl     = '${pageContext.request.contextPath}/user/knowledge/knowledges/chunks';
+        let uploadUrl        = '${pageContext.request.contextPath}/user/rag/embedding';
 
         // 왼쪽 카테고리 그리드에서 선택된 행 (지식파일 업로드 시 사용)
-        var selectedCategoryId   = null;
-        var selectedCategoryName = null;
+        let selectedCategoryId   = null;
+        let selectedCategoryName = null;
 
         // yyyy-mm-dd hh:mm:ss 형태로 변환 (DB 타임스탬프 문자열의 앞 19자리 사용)
         function dateTimeFormatter(cellValue) {
@@ -356,7 +356,7 @@
             // 최초 로딩 시 첫 번째 행을 자동 선택 → onSelectRow 가 우측 지식파일 목록을 자동 조회
             loadComplete: function () {
                 if (selectedCategoryId === null) {
-                    var ids = $(this).jqGrid("getDataIDs");
+                    let ids = $(this).jqGrid("getDataIDs");
                     if (ids && ids.length > 0) {
                         $(this).jqGrid("setSelection", ids[0], true);  // 2번째 인자 true → onSelectRow 트리거
                     }
@@ -364,7 +364,7 @@
             },
             // 행 선택 시 categoryId/categoryName 보관 → 우측 지식파일 목록을 해당 카테고리로 조회
             onSelectRow: function (rowId) {
-                var row = $("#categoryGrid").jqGrid("getRowData", rowId);
+                let row = $("#categoryGrid").jqGrid("getRowData", rowId);
                 selectedCategoryId   = rowId;                       // jsonReader.id = categoryId
                 selectedCategoryName = (row && row.categoryName) ? row.categoryName : rowId;
                 reloadKnowledgeGrid();                              // 선택한 category_id 기준으로 우측 목록 필터 조회
@@ -384,8 +384,8 @@
         });
 
         /* ── 카테고리 등록 레이어 팝업 (projects.jsp 패턴) ── */
-        var saveUrl = listUrl;   // POST /user/category/categories
-        var $popup  = $("#categoryPopup");
+        let saveUrl = listUrl;   // POST /user/category/categories
+        let $popup  = $("#categoryPopup");
 
         function openCreatePopup() {
             $("#popupCategoryName").val("");
@@ -398,7 +398,7 @@
         }
 
         function saveCategory() {
-            var categoryName = $.trim($("#popupCategoryName").val());
+            let categoryName = $.trim($("#popupCategoryName").val());
 
             if (categoryName === "") {
                 alert("카테고리명을 입력하세요.");
@@ -501,11 +501,11 @@
         $("#btnKnowledgeRead").on("click", reloadKnowledgeGrid);
 
         /* ── 파일선택(등록) 레이어 팝업 ── */
-        var $knowledgePopup = $("#knowledgePopup");
+        let $knowledgePopup = $("#knowledgePopup");
 
         // 결과 영역 텍스트 표시 — textContent 로만 삽입(XSS 방지)
         function showKnowledgeResult(text, state) {
-            var el = document.getElementById("knowledgePopupResult");
+            let el = document.getElementById("knowledgePopupResult");
             el.className = "embed-result" + (state ? " is-" + state : "");
             el.textContent = text;
         }
@@ -533,19 +533,19 @@
                 return;
             }
 
-            var fileInput = document.getElementById("knowledgeFile");
-            var file = fileInput.files && fileInput.files[0];
+            let fileInput = document.getElementById("knowledgeFile");
+            let file = fileInput.files && fileInput.files[0];
             if (!file) {
                 showKnowledgeResult("업로드할 텍스트 파일을 선택해 주세요.", "error");
                 return;
             }
 
-            var formData = new FormData();
+            let formData = new FormData();
             // 필드명은 백엔드 @RequestParam 과 정확히 일치해야 한다.
             formData.append("file", file);
             formData.append("categoryId", selectedCategoryId);
 
-            var $btn = $("#btnKnowledgePopupUpload");
+            let $btn = $("#btnKnowledgePopupUpload");
             $btn.prop("disabled", true);
             showKnowledgeResult("업로드 중...", "loading");
 
@@ -586,7 +586,7 @@
                                        chunkIndex, totalChunks, content }, ...] (chunk_index ASC)
            - 닫기 버튼만 존재
            ══════════════════════════════════════════════════════════ */
-        var $chunkPopup = $("#chunkPopup");
+        let $chunkPopup = $("#chunkPopup");
 
         function closeChunkPopup() {
             $chunkPopup.removeClass("is-open").attr("aria-hidden", "true");
@@ -594,12 +594,12 @@
 
         // 청크 목록 렌더링 — content/순번 모두 textContent 로만 삽입(XSS 방지)
         function renderChunkList(list) {
-            var tbody = document.getElementById("chunkListBody");
+            let tbody = document.getElementById("chunkListBody");
             tbody.textContent = "";   // 초기화
 
             if (!list || list.length === 0) {
-                var trEmpty = document.createElement("tr");
-                var tdEmpty = document.createElement("td");
+                let trEmpty = document.createElement("tr");
+                let tdEmpty = document.createElement("td");
                 tdEmpty.colSpan = 2;
                 tdEmpty.className = "chunk-list__empty";
                 tdEmpty.textContent = "조회된 청크가 없습니다.";
@@ -609,13 +609,13 @@
             }
 
             list.forEach(function (chunk) {
-                var tr = document.createElement("tr");
+                let tr = document.createElement("tr");
 
-                var tdIdx = document.createElement("td");
+                let tdIdx = document.createElement("td");
                 tdIdx.className = "chunk-list__idx";
                 tdIdx.textContent = (chunk.chunkIndex == null) ? "" : String(chunk.chunkIndex);
 
-                var tdContent = document.createElement("td");
+                let tdContent = document.createElement("td");
                 tdContent.className = "chunk-list__content";
                 tdContent.textContent = (chunk.content == null) ? "" : chunk.content;
 
@@ -642,7 +642,7 @@
                 type:     "GET",
                 dataType: "json"
             }).done(function (list) {
-                var count = (list && list.length) ? list.length : 0;
+                let count = (list && list.length) ? list.length : 0;
                 document.getElementById("chunkPopupMeta").textContent =
                     "총 " + count + "개 청크";
                 renderChunkList(list);
