@@ -41,7 +41,7 @@ public class SecurityConfig
     /** 인증 없이 접근 가능한 경로 — 랜딩 페이지와 정적 리소스. */
     private static final String[] PUBLIC_PATHS = {
             "/", "/error", "/favicon.ico",
-            "/css/**", "/js/**", "/tinymce/**"
+            "/css/**", "/js/**", "/tinymce/**", "/actuator/health/**"
     };
 
     @Bean

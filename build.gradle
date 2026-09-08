@@ -53,6 +53,9 @@ dependencies {
 
     // Playwright
     implementation("com.microsoft.playwright:playwright:1.60.0")
+
+    // actuator
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 }
 
 
