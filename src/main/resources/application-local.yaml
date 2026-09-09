@@ -1,0 +1,79 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 60m
+  forward-headers-strategy: framework  # nginx 뒤에 있으므로 필수
+
+spring:
+  # Load secrets (e.g. OPENAI_API_KEY) from a gitignored .env file if present
+  config:
+    import: optional:file:.env[.properties]
+  output:
+    ansi:
+      enabled: ALWAYS
+  application:
+    name: guiSample
+  mvc:
+    view:
+      prefix: /WEB-INF/views/
+      suffix: .jsp
+  # 파일 업로드(임베딩 인덱싱) 크기 제한 — plain text 한정, 대용량 가드
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  # Datasource (PostgreSQL) — shared by Spring AI pgvector and MyBatis mappers
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    jdbc-url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
+    maximum-pool-size: 12
+    max-lifetime: 170000
+  ai:
+    openai:
+      base-url: http://litellm.jihun.com
+      api-key: sk-jihun-master-1234
+      chat:
+        options:
+          model: gpt-4o-mini
+          stream-usage: true
+      embedding:
+        options:
+          model: text-embedding-3-small
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: MyTechTestSiteAuth
+            client-secret: ${KEYCLOAK_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            scope: openid, profile, email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          keycloak:
+            issuer-uri: http://keycloak.jihun.com/realms/MyTechTestSite
+            user-name-attribute: preferred_username
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+
