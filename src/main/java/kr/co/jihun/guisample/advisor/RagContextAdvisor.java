@@ -9,11 +9,8 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisor;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.ai.vectorstore.filter.Filter;
-import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+import kr.co.jihun.guisample.dto.RetrievedChunk;
+import kr.co.jihun.guisample.service.HybridRetrievalService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -24,23 +21,26 @@ import java.util.stream.Collectors;
 /**
  * RAG 컨텍스트 주입 어드바이저.
  *
- * <p>사용자 질문으로 pgvector {@link VectorStore} 유사도 검색을 수행하고, 검색된 문서 본문을
- * 시스템 프롬프트의 {@code <context>} 블록에 주입한 뒤 다음 어드바이저/모델로 전달한다.
- * 기존에 {@code AIService} 가 어드바이저 체인 <b>밖에서</b> 직접 하던 벡터 검색을 체인 <b>안으로</b>
- * 옮겨, 실행 순서 계약을 order 값으로 보장한다.
+ * <p>사용자 질문으로 하이브리드 검색(dense pgvector + BM25 키워드, RRF 융합)을 수행하고,
+ * 검색된 문서 본문을 시스템 프롬프트의 {@code <context>} 블록에 주입한 뒤 다음
+ * 어드바이저/모델로 전달한다. 검색 자체는 {@link HybridRetrievalService} 가 맡지만
+ * <b>호출은 여전히 어드바이저 체인 안에서</b> 일어나므로 실행 순서 계약은 order 로 보장된다.
  *
  * <p>동작:
  * <ul>
- *   <li>request 의 마지막 user 메시지 텍스트로 {@link VectorStore#similaritySearch(SearchRequest)} 실행.</li>
- *   <li>{@code category_id} 필터: 요청 컨텍스트({@code request.context().get("category_id")})에 값이 있으면
- *       {@link FilterExpressionBuilder#eq} 로 메타데이터 필터를 적용, 없으면 전체 검색.</li>
- *   <li>문서 본문을 {@code "\n\n---\n\n"} 로 join(없으면 {@link #NO_CONTEXT}) 하여 시스템 프롬프트에 주입.</li>
- *   <li>주입은 {@link String#replace(CharSequence, CharSequence)} 리터럴 치환으로 수행 —
- *       문서 본문에 중괄호가 있어도 템플릿으로 재파싱되지 않아 안전하다.</li>
+ *   <li>request 의 마지막 user 메시지 텍스트로 하이브리드 검색 실행.</li>
+ *   <li>{@code user_name}: 소유권 필터의 유일한 근거. 요청 컨텍스트에 없으면
+ *       <b>전체 검색으로 폴백하지 않고</b> 빈 컨텍스트를 주입한다(타 사용자 문서 노출 방지).</li>
+ *   <li>{@code category_id}: 값이 있으면 카테고리 한정 검색.</li>
+ *   <li>문서 본문을 {@code CONTEXT_SEPARATOR} 로 join(없으면 {@link #NO_CONTEXT}) 하여 주입.</li>
+ *   <li>주입은 {@link String#replace(CharSequence, CharSequence)} 리터럴 치환 —
+ *       문서 본문에 중괄호가 있어도 프롬프트 템플릿으로 재파싱되지 않아 안전하다.</li>
  * </ul>
  *
  * <p><b>user 메시지는 원문 그대로 유지</b>한다. 시스템 메시지만 증강한다.
- * 스트리밍 경로의 블로킹 벡터 검색은 {@link Schedulers#boundedElastic()} 로 오프로딩한다.
+ * 스트리밍 경로의 블로킹 검색은 {@link Schedulers#boundedElastic()} 로 오프로딩하므로,
+ * 이 클래스와 그 아래 호출 경로는 요청 스레드 바인딩 객체({@code LoginUserSession})를
+ * 절대 만지면 안 된다.
  */
 @Slf4j
 public class RagContextAdvisor implements CallAdvisor, StreamAdvisor
@@ -61,26 +61,30 @@ public class RagContextAdvisor implements CallAdvisor, StreamAdvisor
     private static final String SYSTEM_PROMPT = """
             당신은 사내 문서 기반 도우미입니다.
             아래 <context></context> 안의 내용만 근거로 한국어로 간결하고 정확하게 답하세요.
-            컨텍스트에 근거가 없으면 "제공된 문서에서 관련 내용을 찾지 못했습니다." 라고만 답하세요. 추측하지 마세요.
+            사용자가 질문 문장이 아니라 단어나 이름만 입력했다면, 그 대상에 대해 컨텍스트가 말하는
+            내용을 모아 설명하세요. 직접적인 정의문이 없더라도 컨텍스트에 드러난 사실로 설명하면 됩니다.
+            "제공된 문서에서 관련 내용을 찾지 못했습니다." 는 컨텍스트에 그 대상이 실제로 등장하지
+            않을 때만 쓰세요. 컨텍스트 밖의 지식으로 추측하지는 마세요.
             <context>
             {context}
             </context>
             """;
 
-    /** pgvector 유사도 검색을 수행할 VectorStore. */
-    private final VectorStore vectorStore;
+    /** dense + BM25 하이브리드 검색기. */
+    private final HybridRetrievalService hybridRetrievalService;
 
-    /** 컨텍스트로 사용할 최대 문서 수(top-k). */
-    private final int topK;
+    /** 검색 튜닝 파라미터. 각 값의 실측 근거는 {@code SpringAiConfig} javadoc 참조. */
+    private final RagRetrievalSettings settings;
 
     /** 어드바이저 실행 순서(작을수록 먼저). */
     private final int order;
 
-    public RagContextAdvisor(VectorStore vectorStore, int topK, int order)
+    public RagContextAdvisor(HybridRetrievalService hybridRetrievalService,
+                             RagRetrievalSettings settings, int order)
     {
-        this.vectorStore = vectorStore;
-        this.topK        = topK;
-        this.order       = order;
+        this.hybridRetrievalService = hybridRetrievalService;
+        this.settings               = settings;
+        this.order                  = order;
     }
 
     @Override
@@ -128,7 +132,9 @@ public class RagContextAdvisor implements CallAdvisor, StreamAdvisor
             return request;
         }
 
-        String context = retrieveContext(userText, request.context().get("category_id"));
+        String context = retrieveContext(userText,
+                request.context().get("category_id"),
+                request.context().get("user_name"));
         String systemText = SYSTEM_PROMPT.replace(CONTEXT_PLACEHOLDER, context);
 
         // 시스템 메시지만 증강(기존 시스템 메시지가 없으면 새로 추가), user 메시지는 원문 유지.
@@ -137,35 +143,35 @@ public class RagContextAdvisor implements CallAdvisor, StreamAdvisor
     }
 
     /**
-     * 질문 텍스트로 pgvector 유사도 검색을 수행해 컨텍스트 문자열을 구성한다.
+     * 하이브리드 검색을 수행해 컨텍스트 문자열을 구성한다.
      *
      * @param query      검색 질의(원문 user 텍스트)
-     * @param categoryId 요청 컨텍스트에서 읽은 category_id (null/공백이면 전체 검색)
-     * @return 문서 본문을 join 한 컨텍스트(검색 결과가 없으면 {@link #NO_CONTEXT})
+     * @param categoryId 요청 컨텍스트의 category_id (null/공백이면 전체 검색)
+     * @param userName   요청 컨텍스트의 user_name (소유권 필터 기준, 필수)
+     * @return 문서 본문을 join 한 컨텍스트(결과가 없으면 {@link #NO_CONTEXT})
      */
-    private String retrieveContext(String query, Object categoryId)
+    private String retrieveContext(String query, Object categoryId, Object userName)
     {
-        SearchRequest.Builder requestBuilder = SearchRequest.builder()
-                .query(query)
-                .topK(topK);
-
-        if (categoryId != null && !categoryId.toString().isBlank())
+        if (userName == null || userName.toString().isBlank())
         {
-            // metadata->>'category_id' = ? 조건으로 변환되는 메타데이터 필터
-            Filter.Expression filterExpression = new FilterExpressionBuilder()
-                    .eq("category_id", categoryId.toString())
-                    .build();
-            requestBuilder.filterExpression(filterExpression);
+            // 소유권 근거가 없으면 전체 검색으로 흘려보내지 않는다(타 사용자 문서 노출 방지).
+            // 단 SSE 경로이므로 예외는 던지지 않고 컨텍스트만 비운다.
+            log.warn("요청 컨텍스트에 user_name 이 없어 RAG 검색을 건너뛴다.");
+            return NO_CONTEXT;
         }
 
-        List<Document> documents = vectorStore.similaritySearch(requestBuilder.build());
+        List<RetrievedChunk> chunks = hybridRetrievalService.retrieve(
+                query,
+                categoryId == null ? null : categoryId.toString(),
+                userName.toString(),
+                settings);
 
-        if (documents == null || documents.isEmpty())
+        if (chunks.isEmpty())
         {
             return NO_CONTEXT;
         }
-        return documents.stream()
-                .map(Document::getText)
+        return chunks.stream()
+                .map(RetrievedChunk::text)
                 .collect(Collectors.joining(CONTEXT_SEPARATOR));
     }
 }

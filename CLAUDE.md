@@ -58,12 +58,12 @@ Spring Boot 4 + Spring AI(2.0.0-M4) + MyBatis + PostgreSQL(pgvector) + JSP. 루�
 `user_master.user_name` 이 모든 조회의 소유권 필터 키다.
 
 - 소유자 컬럼이 있는 테이블: `chat_master.chat_owner_user_id`, `knowledge_files.create_user_id`.
-- 소유자 컬럼이 **없는** `chat_detail` 과 Spring AI 의 `vector_store` 는 **상위 엔터티의 소유권을 먼저 확인**하고(아니면 빈 목록) 접근한다 — `ChatService.selectMessages`, `KnowledgeFileService.selectKnowledgeChunkList` 가 그 패턴이다.
+- 소유자 컬럼이 **없는** `chat_detail` 과 Spring AI 의 `vector_store` 는 **상위 엔터티의 소유권을 먼저 확인**하고(아니면 빈 목록) 접근한다 — `ChatService.selectMessages`, `KnowledgeFileService.selectKnowledgeChunkList`, `HybridRetrievalService.retrieve` 가 그 패턴이다. RAG 검색도 2026-09-17 부터 이 규칙을 따른다(그 전에는 `category_id` 로만 걸러 남의 문서가 답변 근거로 들어올 수 있었다). 소유권 기준값 `userName` 은 컨트롤러가 **요청 스레드에서** 꺼내 `advisors(spec -> spec.param("user_name", ...))` 로 넘긴다.
 - jqGrid 계열 목록 컨트롤러에서는 **소유자 조건을 count 호출 전에** param 에 넣는다(총건수와 목록이 같은 조건을 봐야 한다). 페이징 키는 그 뒤에 `startRow`/`pageSize` 로 넣는다 — mapper XML 이 `pageSize != null` 일 때만 LIMIT/OFFSET 을 붙인다.
 
 ### RAG 파이프라인
 
-- 벡터 검색은 서비스가 아니라 **어드바이저 체인 안**에서 일어난다: `RagContextAdvisor`(`CallAdvisor`+`StreamAdvisor`, order `HIGHEST_PRECEDENCE+100`, topK=4). 시스템 메시지만 `augmentSystemMessage` 로 증강하고 user 메시지는 원문 유지. 컨텍스트 주입은 `String.replace` **리터럴 치환** — 문서 본문의 중괄호가 프롬프트 템플릿으로 재파싱되지 않게 하기 위함이다. 스트리밍 경로의 블로킹 검색은 `boundedElastic` 로 오프로딩한다.
+- 검색은 서비스가 아니라 **어드바이저 체인 안**에서 트리거된다: `RagContextAdvisor`(`CallAdvisor`+`StreamAdvisor`, order `HIGHEST_PRECEDENCE+100`)가 `HybridRetrievalService` 를 호출해 **dense(pgvector) + BM25 키워드 검색을 RRF 로 융합**한다(topK=8, 후보 각 20, RRF k=60). 검색 로직이 별도 서비스로 나갔어도 **호출은 여전히 체인 안**이라 실행 순서 계약은 order 로 그대로 보장된다. 키워드 쪽 스키마는 `db/bm25_hybrid_schema.sql`(수동 적용), 설계 근거는 ADR 0005. 시스템 메시지만 `augmentSystemMessage` 로 증강하고 user 메시지는 원문 유지. 컨텍스트 주입은 `String.replace` **리터럴 치환** — 문서 본문의 중괄호가 프롬프트 템플릿으로 재파싱되지 않게 하기 위함이다. 스트리밍 경로의 블로킹 검색은 `boundedElastic` 로 오프로딩한다.
 - 카테고리 한정 검색은 `chatClient...advisors(spec -> spec.param("category_id", ...))` 로 넘기고 어드바이저가 `request.context()` 에서 읽어 메타데이터 필터로 변환한다.
 - 인덱싱(`EmbeddingService.embed`): 부모 `Document` 의 id 를 `fileId` 로 지정 → `TokenTextSplitter`(chunkSize 800)가 청크 metadata 에 `parent_document_id` 를 자동 주입 → `knowledge_files.file_id` 와 일치. 그래서 청크 조회를 파일 소유권으로 막을 수 있다.
 - `POST /user/rag/docs` 는 `text/event-stream` 이라 **예외를 절대 밖으로 던지면 안 된다**. 던지면 Accept 협상 실패로 500 + 본문 없음이 된다. `onErrorResume` 으로 모든 실패를 텍스트 1건 + 정상 종료(200)로 바꾼다. LiteLLM 가드레일 차단은 400 응답 본문의 표식(`GUARDRAIL_MARKERS`)으로 설정 오류 400 과 구분한다.
@@ -78,13 +78,15 @@ Spring Boot 4 + Spring AI(2.0.0-M4) + MyBatis + PostgreSQL(pgvector) + JSP. 루�
 
 ### 스키마 · 마이그레이션
 
-- `src/main/resources/db/*.sql` 은 **수동 적용** 대상이다. 부팅 시 자동 실행되지 않는다.
+- `src/main/resources/db/*.sql` 은 **수동 적용** 대상이다. 부팅 시 자동 실행되지 않는다. `bm25_hybrid_schema.sql` 은 특히 **코드보다 먼저** 적용해야 한다(미적용 시 키워드 검색이 조용히 빠지고 dense-only 로 폴백).
 - `vector_store` 테이블만 `spring.ai.vectorstore.pgvector.initialize-schema: true` 로 자동 생성된다(HNSW, cosine, 1536차원). 도메인 테이블(`user_master`, `project_master`, `category_master`, `knowledge_files`, `chat_master`, `chat_detail`)은 직접 만들어야 한다.
 - 매퍼는 interface(`mapper/`)와 XML(`resources/mapper/`)이 짝을 이루며 namespace 가 일치해야 한다. 명시적 `resultMap` 을 쓰고, 동적 조건은 `<sql>` 조각으로 재사용한다(`KnowledgeFileMapper.xml` 이 표준형).
+- **매퍼 XML 주석 안에 파라미터 표기(`#{...}`)를 쓰지 말 것.** MyBatis 의 치환은 SQL 주석을 구분하지 않아 주석 속 예시도 실제 바인딩으로 잡힌다. 그러면 MyBatis 는 파라미터를 n+1개 만들고 드라이버는 `?` n개만 보게 되어 `The column index is out of range` 로 죽는다. psql 로 SQL 을 직접 돌려보는 검증으로는 절대 안 잡히므로(주석이 문제라서), **매퍼는 MyBatis 를 통과시켜 확인**해야 한다.
 
 ## 문서
 
-- `src/docs/adr/` — 결정 기록: 0001 pgvector 채택, 0002 RAG 파이프라인·가드레일 LiteLLM 위임, 0003 Keycloak SSO·세션 관리. **인증/RAG 흐름을 바꾸기 전에 읽을 것.**
+- `src/docs/adr/` — 결정 기록: 0001 pgvector 채택, 0002 RAG 파이프라인·가드레일 LiteLLM 위임, 0003 Keycloak SSO·세션 관리, 0004 sguard 포기 근거, 0005 하이브리드 검색(BM25+RRF)·RAG 소유권. **인증/RAG 흐름을 바꾸기 전에 읽을 것.**
+- `src/docs/measurements.md` — 검색 품질·비용 실측 이력. **임베딩 모델이나 검색 임계값을 바꾸기 전에 읽고, 바꾼 뒤에는 같은 형식으로 추가할 것.**
 - `_workspace/00_architect_design.md` — 채팅 세션 기능(chat_master/chat_detail) 상세 설계. 나머지 `_workspace/*` 는 하위 에이전트 작업 요약, `_workspace_prev_*` 는 이전 회차 보관본.
 - `README.md` — 기능·API 개요. 단, 자바 버전과 `vo` 패키지(현재는 `dto`) 표기는 낡았다.
 - `DESIGN.md` — 앱 아키텍처가 아니라 UI 디자인 토큰(Apple 스타일) 스펙이다.
@@ -100,3 +102,4 @@ Spring Boot 4 + Spring AI(2.0.0-M4) + MyBatis + PostgreSQL(pgvector) + JSP. 루�
 |------|----------|------|------|
 | 2026-05-30 | 초기 구성 (에이전트 5, 스킬 6) | 전체 | - |
 | 2026-09-09 | 아키텍처·설정·E2E 섹션 보강 (/init) | 전체 | 코드 실사와 문서 불일치 해소 |
+| 2026-09-17 | 하이브리드 검색(BM25+RRF)·RAG 소유권 필터 반영 | RAG·소유권·스키마 | ADR 0005 |

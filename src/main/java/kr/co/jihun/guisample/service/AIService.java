@@ -36,30 +36,12 @@ public class AIService
     private static final int FALLBACK_TITLE_LEN = 20;
 
     /**
-     * 질의에 대한 RAG 답변을 토큰(텍스트) 단위로 스트리밍한다. (기존 시그니처 — 하위호환 유지)
-     *
-     * @param query      사용자가 입력한 질문
-     * @param categoryId 검색을 한정할 카테고리 ID (null/공백이면 전체 벡터 검색)
-     * @return 답변 토큰 스트림 (질의가 비면 안내 메시지 1건)
-     */
-    public Flux<String> getDocs(String query, String categoryId)
-    {
-        if (query == null || query.isBlank())
-        {
-            return Flux.just("질문을 입력해 주세요.");
-        }
-        return streamChat(query, categoryId)
-                .map(AIService::extractText)
-                .filter(text -> !text.isEmpty());
-    }
-
-    /**
      * 질의에 대한 RAG 답변을 {@link ChatResponse} 단위로 스트리밍한다.
      * 텍스트뿐 아니라 model/usage(토큰) 메타데이터를 확보할 수 있어 대화 저장 경로에서 사용한다.
      *
      * <p>동작(어드바이저 체인):
      * <ol>
-     *   <li>{@link RagContextAdvisor}: pgvector 유사도 검색(top-k=4, category_id 메타 필터)으로
+     *   <li>{@link RagContextAdvisor}: pgvector 유사도 검색(top-k·유사도 임계값은 SpringAiConfig, category_id 메타 필터)으로
      *       컨텍스트를 시스템 메시지에 주입.</li>
      *   <li>ChatClient 스트림을 {@code .chatResponse()} 로 소비 → Flux&lt;ChatResponse&gt;.</li>
      * </ol>
@@ -68,9 +50,12 @@ public class AIService
      *
      * @param query      사용자가 입력한 질문
      * @param categoryId 검색을 한정할 카테고리 ID (null/공백이면 전체 벡터 검색)
+     * @param userName   소유권 필터 기준(user_master.user_name). 컨트롤러가 <b>요청 스레드에서</b>
+     *                   꺼내 넘겨야 한다 — 어드바이저는 boundedElastic 에서 돌아
+     *                   LoginUserSession 에 접근할 수 없다.
      * @return ChatResponse 스트림
      */
-    public Flux<ChatResponse> streamChat(String query, String categoryId)
+    public Flux<ChatResponse> streamChat(String query, String categoryId, String userName)
     {
         if (query == null || query.isBlank())
         {
@@ -80,12 +65,18 @@ public class AIService
         return chatClient.prompt()
                 // 어드바이저 체인: RAG 컨텍스트 주입.
                 .advisors(ragContextAdvisor)
-                // category_id 는 RagContextAdvisor 가 request.context() 로 읽는다. 값이 있을 때만 전달(param 은 null 불가).
+                // RagContextAdvisor 가 request.context() 로 읽는다. 값이 있을 때만 전달(param 은 null 불가).
                 .advisors(spec ->
                 {
                     if (categoryId != null && !categoryId.isBlank())
                     {
                         spec.param("category_id", categoryId);
+                    }
+                    // user_name 은 소유권 필터의 유일한 근거다.
+                    // 없으면 어드바이저가 전체 검색으로 폴백하지 않고 컨텍스트를 비운다.
+                    if (userName != null && !userName.isBlank())
+                    {
+                        spec.param("user_name", userName);
                     }
                 })
                 .user(query)

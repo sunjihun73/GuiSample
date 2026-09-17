@@ -3,4 +3,4 @@ spring:
     # 기동 시 사용할 프로파일: e2e | local
     # 실행 예: ./gradlew bootRun --args='--spring.profiles.active=e2e'
     #         SPRING_PROFILES_ACTIVE=e2e java -jar app.war
-    active: e2e
+    active: local

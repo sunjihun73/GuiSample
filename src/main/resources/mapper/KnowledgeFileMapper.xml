@@ -92,6 +92,14 @@
             (vs.metadata ->> 'chunk_index')::int ASC
     </select>
 
+    <!-- dense 검색 소유권 필터용. 조건은 knowledgeFileWhere 조각을 그대로 재사용한다. -->
+    <select id="selectOwnedFileIdList" parameterType="hashmap" resultType="string">
+        SELECT kf.file_id
+        FROM knowledge_files kf
+        <include refid="knowledgeFileWhere"/>
+        ORDER BY kf.file_id
+    </select>
+
     <insert id="insertKnowledgeFile"
             parameterType="kr.co.jihun.guisample.dto.KnowledgeFileDTO">
         INSERT INTO knowledge_files (

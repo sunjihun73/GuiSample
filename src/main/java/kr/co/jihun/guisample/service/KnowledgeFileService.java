@@ -1,6 +1,7 @@
 package kr.co.jihun.guisample.service;
 
 import kr.co.jihun.guisample.dto.EmbeddingResponse;
+import kr.co.jihun.guisample.mapper.KeywordSearchMapper;
 import kr.co.jihun.guisample.mapper.KnowledgeFileMapper;
 import kr.co.jihun.guisample.dto.KnowledgeChunkDTO;
 import kr.co.jihun.guisample.dto.KnowledgeFileDTO;
@@ -37,6 +38,7 @@ public class KnowledgeFileService
 
     private final KnowledgeFileMapper knowledgeFileMapper;
     private final EmbeddingService embeddingService;
+    private final KeywordSearchMapper keywordSearchMapper;
 
     /* ── 목록 조회 ───────────────────────────────────────── */
 
@@ -147,6 +149,21 @@ public class KnowledgeFileService
             vo.setCreateUserId(userName);
             vo.setUpdateUserId(userName);
             knowledgeFileMapper.insertKnowledgeFile(vo);
+
+            // 6) BM25 통계(df/N/avgdl) 갱신.
+            //    insert "이후" 인 이유: 메타데이터 행이 못 들어간 파일의 term 이 집계되지 않게.
+            //    통계는 랭킹 품질에만 영향을 주고 recall 에는 영향이 없으므로,
+            //    실패해도 업로드 자체는 성공시킨다(다음 업로드 때 복구된다).
+            try
+            {
+                int termCount = keywordSearchMapper.refreshBm25Stats();
+                log.info("BM25 통계 갱신 - fileId={}, termCount={}", fileId, termCount);
+            }
+            catch (Exception statsError)
+            {
+                log.error("BM25 통계 갱신 실패 - fileId={} (검색은 낡은 통계로 계속 동작한다)",
+                        fileId, statsError);
+            }
 
             log.info("지식파일 업로드 완료 - fileId={}, categoryId={}, fileName={}, chunkCount={}",
                     fileId, categoryId, originalName, chunkCount);

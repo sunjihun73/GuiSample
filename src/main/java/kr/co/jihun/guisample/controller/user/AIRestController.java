@@ -210,7 +210,7 @@ public class AIRestController
         AtomicReference<Integer> promptTokens     = new AtomicReference<>(null);
         AtomicReference<Integer> completionTokens = new AtomicReference<>(null);
 
-        Flux<String> textStream = aiService.streamChat(query, categoryId)
+        Flux<String> textStream = aiService.streamChat(query, categoryId, userName)
                 .doOnNext(resp -> captureMetadata(resp.getMetadata(), model, promptTokens, completionTokens))
                 .map(AIService::extractText)
                 .filter(text -> !text.isEmpty())

@@ -31,6 +31,11 @@ spring:
     password: postgres
     maximum-pool-size: 12
     max-lifetime: 170000
+    # HNSW 탐색 폭. 기본 40 은 RagContextAdvisor 의 top-k(8) 대비 좁아 상위 문서를 놓친다.
+    # pgvector 가 아직 로드되지 않은 세션에서도 placeholder GUC 로 허용되므로 커넥션 초기화에 안전하다.
+    # 주의: 코퍼스가 작으면(2026-09-17 기준 318 청크) 플래너가 HNSW 대신 seq scan 을 고른다.
+    #       그동안 이 설정은 무해한 no-op 이고, 데이터가 늘어 인덱스를 타기 시작하면 그때부터 효과가 난다.
+    connection-init-sql: SET hnsw.ef_search = 100
   ai:
     openai:
       base-url: http://litellm.jihun.com
@@ -41,7 +46,11 @@ spring:
           stream-usage: true
       embedding:
         options:
-          model: text-embedding-3-small
+          # 3-large + MRL 절단(dimensions). 3-large@1536 은 3-small@1536 보다 검색 품질이 높다.
+          # 네이티브 3072 은 쓰지 않는다 — pgvector HNSW 인덱스 상한이 2000 차원이라 색인이 불가능하다.
+          # dimensions 는 아래 vectorstore.pgvector.dimensions 와 반드시 같아야 한다.
+          model: text-embedding-3-large
+          dimensions: 1536
     vectorstore:
       pgvector:
         initialize-schema: true
